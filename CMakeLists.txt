@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 
-project(bulk VERSION 0.0.$ENV{TRAVIS_BUILD_NUMBER})
+project(lsmonitor VERSION 0.0.$ENV{TRAVIS_BUILD_NUMBER})
 
 find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 
@@ -10,29 +10,29 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/stlab/stlab/concurrency)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/stlab)
 
 add_executable(lsmonitor main.cpp)
-add_executable(test_monitor test_monitor.cpp)
+add_executable(test_lsmonitor test_main.cpp)
 
 set_target_properties(
-  monitor
-  test_monitor
+  lsmonitor
+  test_lsmonitor
   PROPERTIES
     COMPILE_OPTIONS "-std=c++17;-Wpedantic;-Wall;-Wextra"
   )
 
-set_target_properties(test_monitor PROPERTIES
+set_target_properties(test_lsmonitor PROPERTIES
   COMPILE_DEFINITIONS BOOST_TEST_DYN_LINK
   INCLUDE_DIRECTORIES "${Boost_INCLUDE_DIR};${CMAKE_CURRENT_SOURCE_DIR}"
   )
 
 target_link_libraries(
-  test_monitor
+  test_lsmonitor
   ${Boost_LIBRARIES}
   )
 
-install(TARGETS bulk RUNTIME DESTINATION bin)
+install(TARGETS lsmonitor RUNTIME DESTINATION bin)
 
 set(CPACK_GENERATOR DEB)
 

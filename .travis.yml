@@ -14,14 +14,7 @@ before_script:
     && ln -s /opt/cmake-3.14.0-Linux-x86_64/bin/ccmake ~/bin/ccmake \
     && ln -s /opt/cmake-3.14.0-Linux-x86_64/bin/cpack ~/bin/cpack \
     && ln -s /opt/cmake-3.14.0-Linux-x86_64/bin/ctest ~/bin/ctest
-  - sudo pip3 install conan
-  - |
-    cd $TRAVIS_BUILD_DIR/stlab \
-    && mkdir -p build \
-    && cd build \
-    && conan install .. --build=missing -s build_type=Debug
 script:
-  - cd $TRAVIS_BUILD_DIR/stlab/build && cmake -DCMAKE_BUILD_TYPE=debug -Dstlab_testing=ON .. && cd $TRAVIS_BUILD_DIR
   - cmake .
   - cmake --build . -- VERBOSE=1
   - cmake --build . --target package -- VERBOSE=1
