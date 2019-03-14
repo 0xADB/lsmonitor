@@ -1,0 +1,18 @@
+language: cpp
+before_script:
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update
+  - sudo apt-get -y install gcc-5 g++-5 libboost-test-dev python3-pip
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 1
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
+  - sudo pip3 install conan
+script:
+  - cmake .
+  - cmake --build . --target test_ip_filter -- VERBOSE=1
+  - cmake --build . --target test -- VERBOSE=1
+  - cmake --build . --target package -- VERBOSE=1
+deploy:
+  provider: script
+  skip_cleanup: true
+  script:
+- curl -T lsmonitor-0.0.$TRAVIS_BUILD_NUMBER-Linux.deb -u0xadb:$BINTRAY_API_KEY "https://api.bintray.com/content/0xadb/otus/homework/$TRAVIS_BUILD_NUMBER/lsmonitor-0.0.$TRAVIS_BUILD_NUMBER-Linux.deb;deb_distribution=trusty;deb_component=main;deb_architecture=amd64;publish=1"
