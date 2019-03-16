@@ -2,34 +2,48 @@ cmake_minimum_required(VERSION 3.2)
 
 project(lsmonitor VERSION 0.0.$ENV{TRAVIS_BUILD_NUMBER})
 
-find_package(Boost COMPONENTS unit_test_framework REQUIRED)
+configure_file(version.h.in version.h)
 
-configure_file(version.h.in autoversion.h)
+find_program(conan conan)
+set(CONANFILE ${CMAKE_SOURCE_DIR}/conanfile.txt)
+set(CONANFILE_CMAKE ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+execute_process(
+  COMMAND ${conan} install
+    --update
+    --remote conan-center
+    --settings os=${CMAKE_HOST_SYSTEM_NAME}
+    --settings compiler.libcxx=libstdc++11
+    ${CMAKE_SOURCE_DIR}
+  RESULT_VARIABLE CONAN_RETURN_CODE
+  )
+
+if(NOT ${CONAN_RETURN_CODE} EQUAL 0)
+  message(FATAL_ERROR "conan install command failed.")
+endif()
+
+include(${CONANFILE_CMAKE})
+conan_basic_setup(TARGETS)
 
 include_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/lsmonitor
+  ${CMAKE_CURRENT_SOURCE_DIR}/lsprobe
+  ${CONAN_INCLUDE_DIRS_SPDLOG}
+  ${CONAN_INCLUDE_DIRS_FMT}
+  )
+
+link_directories(
+  ${CONAN_LIB_DIRS}
   )
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/stlab)
 
-add_executable(lsmonitor main.cpp)
-add_executable(test_lsmonitor test_main.cpp)
-
-set_target_properties(
-  lsmonitor
-  test_lsmonitor
-  PROPERTIES
-    COMPILE_OPTIONS "-std=c++17;-Wpedantic;-Wall;-Wextra"
+add_executable(lsmonitor
+  lsmonitor/main.cpp
+  lsmonitor/lsprobe_reader.cpp
   )
 
-set_target_properties(test_lsmonitor PROPERTIES
-  COMPILE_DEFINITIONS BOOST_TEST_DYN_LINK
-  INCLUDE_DIRECTORIES "${Boost_INCLUDE_DIR};${CMAKE_CURRENT_SOURCE_DIR}"
-  )
-
-target_link_libraries(
-  test_lsmonitor
-  ${Boost_LIBRARIES}
+set_target_properties(lsmonitor PROPERTIES
+  COMPILE_OPTIONS "-std=c++17;-Wpedantic;-Wall;-Wextra"
   )
 
 install(TARGETS lsmonitor RUNTIME DESTINATION bin)
@@ -41,12 +55,10 @@ set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 
-message("-- CPACK_PACKAGE_VERSION: " ${CPACK_PACKAGE_VERSION})
-
 set(CPACK_PACKAGE_NAME "${CMAKE_PROJECT_NAME}")
 set(CPACK_PACKAGE_CONTACT "ad.beregovoy@gmail.com")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A toy Linux security events monitor.")
-set(CPACK_PACKAGE_DESCRIPTION "An utility that reads date exposed by lsprobe, Linux security events probe.")
+set(CPACK_PACKAGE_DESCRIPTION "An utility that reads data exposed by lsprobe, Linux security events probe.")
 
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 
@@ -58,6 +70,3 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Anton Beregovoy <${CPACK_PACKAGE_CONTACT}>"
 
 include(CPack)
 
-enable_testing()
-
-add_test(lsmonitor_tests test_lsmonitor)
