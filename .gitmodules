@@ -1,3 +1,9 @@
 [submodule "stlab"]
 	path = stlab
 	url = https://github.com/stlab/libraries
+[submodule "lsprobe"]
+	path = lsprobe
+	url = https://github.com/0xADB/lsprobe.git
+[submodule "fmt"]
+	path = fmt
+	url = https://github.com/fmtlib/fmt.git
