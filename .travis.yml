@@ -14,6 +14,7 @@ script:
     && tar xf ./cmake-3.14.0-Linux-x86_64.tar.gz \
     && cd ..
   - source env/bin/activate
+  - find .
   - env/bin/cmake --version
   - env/bin/pip3 install --upgrade pip
   - env/bin/pip3 install conan
