@@ -14,7 +14,7 @@ script:
     && wget -nv https://github.com/Kitware/CMake/releases/download/v3.14.0/cmake-3.14.0-Linux-x86_64.tar.gz \
     && tar xf ./cmake-3.14.0-Linux-x86_64.tar.gz \
     && cd $TRAVIS_BUILD_DIR \
-    && test -d TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64
+    && test -d $TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64
   - ln -s $TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64/bin/cmake  $TRAVIS_BUILD_DIR/env/bin/cmake
   - ln -s $TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64/bin/ccmake $TRAVIS_BUILD_DIR/env/bin/ccmake
   - ln -s $TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64/bin/cpack  $TRAVIS_BUILD_DIR/env/bin/cpack
