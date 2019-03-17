@@ -23,7 +23,7 @@ script:
   - $TRAVIS_BUILD_DIR/env/bin/pip3 install --upgrade pip
   - $TRAVIS_BUILD_DIR/env/bin/pip3 install conan
   - mkdir -p $TRAVIS_BUILD_DIR/build && cd $TRAVIS_BUILD_DIR/build
-  - $TRAVIS_BUILD_DIR/env/bin/cmake -H$TRAVIS_BUILD_DIR/ -B$TRAVIS_BUILD_DIR/build/
+  - $TRAVIS_BUILD_DIR/env/bin/cmake -DCMAKE_PREFIX_PATH=$TRAVIS_BUILD_DIR/env/ -H$TRAVIS_BUILD_DIR/ -B$TRAVIS_BUILD_DIR/build/
   - $TRAVIS_BUILD_DIR/env/bin/cmake --build $TRAVIS_BUILD_DIR/build/ -- VERBOSE=1
   - $TRAVIS_BUILD_DIR/env/bin/cmake --build $TRAVIS_BUILD_DIR/build/ --target package -- VERBOSE=1
 deploy:
