@@ -6,8 +6,7 @@ before_script:
   - sudo apt-get -y install gcc-7 g++-7 python3-pip libspdlog-dev virtualenv
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 1
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 1
-  - |
-   script:
+script:
   - virtualenv env
   - |
     cd env \
