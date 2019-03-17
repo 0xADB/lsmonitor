@@ -19,8 +19,8 @@ script:
   - ln -s $TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64/bin/cpack  $TRAVIS_BUILD_DIR/env/bin/cpack
   - ln -s $TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64/bin/ctest  $TRAVIS_BUILD_DIR/env/bin/ctest
   - $TRAVIS_BUILD_DIR/env/bin/cmake --version
-  - $TRAVIS_BUILD_DIRenv/env/bin/pip3 install --upgrade pip
-  - $TRAVIS_BUILD_DIRenv/env/bin/pip3 install conan
+  - $TRAVIS_BUILD_DIR/env/bin/pip3 install --upgrade pip
+  - $TRAVIS_BUILD_DIR/env/bin/pip3 install conan
   - mkdir -p build && cd build
   - $TRAVIS_BUILD_DIR/env/bin/cmake --debug-output -H../ -B./
   - $TRAVIS_BUILD_DIR/env/bin/cmake --build . -- VERBOSE=1
