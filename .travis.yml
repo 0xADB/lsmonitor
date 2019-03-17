@@ -14,13 +14,13 @@ script:
     && tar xf ./cmake-3.14.0-Linux-x86_64.tar.gz \
     && cd ..
   - source env/bin/activate
-  - "$VIRTUAL_ENV"/bin/cmake --version
-  - "$VIRTUAL_ENV"/bin/pip3 install --upgrade pip
-  - "$VIRTUAL_ENV"/bin/pip3 install conan
+  - env/bin/cmake --version
+  - env/bin/pip3 install --upgrade pip
+  - env/bin/pip3 install conan
   - mkdir -p build && cd build
-  - "$VIRTUAL_ENV"/bin/cmake --debug-output -H../ -B./
-  - "$VIRTUAL_ENV"/bin/cmake --build . -- VERBOSE=1
-  - "$VIRTUAL_ENV"/bin/cmake --build . --target package -- VERBOSE=1
+  - ../env/bin/cmake --debug-output -H../ -B./
+  - ../env/bin/cmake --build . -- VERBOSE=1
+  - ../env/bin/cmake --build . --target package -- VERBOSE=1
 deploy:
   provider: script
   skip_cleanup: true
