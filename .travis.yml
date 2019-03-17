@@ -13,13 +13,12 @@ script:
     cd env \
     && wget -nv https://github.com/Kitware/CMake/releases/download/v3.14.0/cmake-3.14.0-Linux-x86_64.tar.gz \
     && tar xf ./cmake-3.14.0-Linux-x86_64.tar.gz \
-    && cd cmake-3.14.0-Linux-x86_64/bin \
-    && ln -s cmake $TRAVIS_BUILD_DIR/env/bin/cmake \
-    && ln -s ccmake $TRAVIS_BUILD_DIR/env/bin/ccmake \
-    && ln -s cpack $TRAVIS_BUILD_DIR/env/bin/cpack \
-    && ln -s ctest $TRAVIS_BUILD_DIR/env/bin/ctest \
-    && cd $TRAVIS_BUILD_DIR \
-    && $TRAVIS_BUILD_DIR/env/bin/cmake --version
+    && test -d cmake-3.14.0-Linux-x86_64
+  - ln -s $TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64/bin/cmake  $TRAVIS_BUILD_DIR/env/bin/cmake
+  - ln -s $TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64/bin/ccmake $TRAVIS_BUILD_DIR/env/bin/ccmake
+  - ln -s $TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64/bin/cpack  $TRAVIS_BUILD_DIR/env/bin/cpack
+  - ln -s $TRAVIS_BUILD_DIR/env/cmake-3.14.0-Linux-x86_64/bin/ctest  $TRAVIS_BUILD_DIR/env/bin/ctest
+  - $TRAVIS_BUILD_DIR/env/bin/cmake --version
   - $TRAVIS_BUILD_DIRenv/bin/pip3 install --upgrade pip
   - $TRAVIS_BUILD_DIRenv/bin/pip3 install conan
   - mkdir -p build && cd build
