@@ -4,11 +4,15 @@ project(lsmonitor VERSION 0.0.$ENV{TRAVIS_BUILD_NUMBER})
 
 configure_file(version.h.in version.h)
 
-find_program(conan conan)
+find_program(CONAN conan)
+if(NOT EXISTS ${CONAN})
+  message(FATAL_ERROR "conan not found.")
+endif()
+
 set(CONANFILE ${CMAKE_SOURCE_DIR}/conanfile.txt)
 set(CONANFILE_CMAKE ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 execute_process(
-  COMMAND ${conan} install --update --remote conan-center -s os=${CMAKE_HOST_SYSTEM_NAME} -s compiler.libcxx=libstdc++11 ${CMAKE_SOURCE_DIR} RESULT_VARIABLE CONAN_RETURN_CODE
+  COMMAND ${CONAN} install --update --remote conan-center -s os=${CMAKE_HOST_SYSTEM_NAME} -s compiler.libcxx=libstdc++11 ${CMAKE_SOURCE_DIR} RESULT_VARIABLE CONAN_RETURN_CODE
   )
 
 if(NOT ${CONAN_RETURN_CODE} EQUAL 0)
