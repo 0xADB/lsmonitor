@@ -10,17 +10,17 @@ script:
   - virtualenv env
   - |
     cd env \
-    && wget https://github.com/Kitware/CMake/releases/download/v3.14.0/cmake-3.14.0-Linux-x86_64.tar.gz \
+    && wget -nv https://github.com/Kitware/CMake/releases/download/v3.14.0/cmake-3.14.0-Linux-x86_64.tar.gz \
     && tar xf ./cmake-3.14.0-Linux-x86_64.tar.gz \
     && cd ..
   - source env/bin/activate
-  - env
-  - cmake --version
-  - pip install --upgrade pip
-  - pip install conan
-  - cmake .
-  - cmake --build . -- VERBOSE=1
-  - cmake --build . --target package -- VERBOSE=1
+  - "$VIRTUAL_ENV"/bin/cmake --version
+  - "$VIRTUAL_ENV"/bin/pip3 install --upgrade pip
+  - "$VIRTUAL_ENV"/bin/pip3 install conan
+  - mkdir -p build && cd build
+  - "$VIRTUAL_ENV"/bin/cmake --debug-output -H../ -B./
+  - "$VIRTUAL_ENV"/bin/cmake --build . -- VERBOSE=1
+  - "$VIRTUAL_ENV"/bin/cmake --build . --target package -- VERBOSE=1
 deploy:
   provider: script
   skip_cleanup: true

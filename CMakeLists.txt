@@ -8,13 +8,7 @@ find_program(conan conan)
 set(CONANFILE ${CMAKE_SOURCE_DIR}/conanfile.txt)
 set(CONANFILE_CMAKE ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 execute_process(
-  COMMAND ${conan} install
-    --update
-    --remote conan-center
-    --settings os=${CMAKE_HOST_SYSTEM_NAME}
-    --settings compiler.libcxx=libstdc++11
-    ${CMAKE_SOURCE_DIR}
-  RESULT_VARIABLE CONAN_RETURN_CODE
+  COMMAND ${conan} install --update --remote conan-center -s os=${CMAKE_HOST_SYSTEM_NAME} -s compiler.libcxx=libstdc++11 ${CMAKE_SOURCE_DIR} RESULT_VARIABLE CONAN_RETURN_CODE
   )
 
 if(NOT ${CONAN_RETURN_CODE} EQUAL 0)
