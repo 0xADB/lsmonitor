@@ -15,11 +15,11 @@ script:
     && tar xf ./cmake-3.14.0-Linux-x86_64.tar.gz \
     && cd cmake-3.14.0-Linux-x86_64/bin \
     && ln -s cmake $TRAVIS_BUILD_DIR/env/bin/cmake \
-    && ln -s cmake $TRAVIS_BUILD_DIR/env/bin/ccmake \
-    && ln -s cmake $TRAVIS_BUILD_DIR/env/bin/cpack \
-    && ln -s cmake $TRAVIS_BUILD_DIR/env/bin/ctest \
-    && cd $TRAVIS_BUILD_DIR
-  - $TRAVIS_BUILD_DIR/env/bin/cmake --version
+    && ln -s ccmake $TRAVIS_BUILD_DIR/env/bin/ccmake \
+    && ln -s cpack $TRAVIS_BUILD_DIR/env/bin/cpack \
+    && ln -s ctest $TRAVIS_BUILD_DIR/env/bin/ctest \
+    && cd $TRAVIS_BUILD_DIR \
+    && $TRAVIS_BUILD_DIR/env/bin/cmake --version
   - $TRAVIS_BUILD_DIRenv/bin/pip3 install --upgrade pip
   - $TRAVIS_BUILD_DIRenv/bin/pip3 install conan
   - mkdir -p build && cd build
