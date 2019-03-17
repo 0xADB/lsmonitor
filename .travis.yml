@@ -3,25 +3,24 @@ language: cpp
 before_script:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get update
-  - sudo apt-get -y install gcc-7 g++-7 python3-pip libspdlog-dev virtualenv
+  - sudo apt-get -y install gcc-7 g++-7 python3-pip libspdlog-dev
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 1
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 1
+  - sudo pip3 install virtualenv
 script:
-  - virtualenv env
+  - virtualenv -p python3 env
   - |
     cd env \
     && wget -nv https://github.com/Kitware/CMake/releases/download/v3.14.0/cmake-3.14.0-Linux-x86_64.tar.gz \
     && tar xf ./cmake-3.14.0-Linux-x86_64.tar.gz \
     && cd ..
-  - source env/bin/activate
-  - find .
-  - env/bin/cmake --version
-  - env/bin/pip3 install --upgrade pip
-  - env/bin/pip3 install conan
+  - $TRAVIS_BUILD_DIR/env/bin/cmake --version
+  - $TRAVIS_BUILD_DIRenv/bin/pip3 install --upgrade pip
+  - $TRAVIS_BUILD_DIRenv/bin/pip3 install conan
   - mkdir -p build && cd build
-  - ../env/bin/cmake --debug-output -H../ -B./
-  - ../env/bin/cmake --build . -- VERBOSE=1
-  - ../env/bin/cmake --build . --target package -- VERBOSE=1
+  - $TRAVIS_BUILD_DIR/env/bin/cmake --debug-output -H../ -B./
+  - $TRAVIS_BUILD_DIR/env/bin/cmake --build . -- VERBOSE=1
+  - $TRAVIS_BUILD_DIR/env/bin/cmake --build . --target package -- VERBOSE=1
 deploy:
   provider: script
   skip_cleanup: true
