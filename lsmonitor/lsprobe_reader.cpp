@@ -10,6 +10,8 @@
 #include <cstring>
 #include <stdexcept>
 
+static std::atomic_bool lsp::Reader::stopping;
+
 lsp::Reader::~Reader()
 {
   if (_eventsFd > 0)
@@ -30,7 +32,7 @@ void lsp::Reader::operator()()
   lsp_event_t * event = new(_buffer.get()) lsp_event_t;
 
   ssize_t bytesRead = ::read(_eventsFd, event, LSP_EVENT_MAX_SIZE);
-  while (bytesRead > 0)
+  while (!stopping.load() && bytesRead > 0)
   {
     spdlog::info("[{0:d}] [{1:d}] [{2:d}:{3:d}] {4}"
 	, event->code

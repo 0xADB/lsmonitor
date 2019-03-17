@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <cstddef>
+#include <atomic>
 
 namespace lsp
 {
@@ -20,5 +21,6 @@ namespace lsp
 
     int _eventsFd{};
     std::unique_ptr<std::byte[]> _buffer = std::make_unique<std::byte[]>(LSP_EVENT_MAX_SIZE);
+    static std::atomic_bool stopping;
   };
 } // lsp

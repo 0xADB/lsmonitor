@@ -16,6 +16,7 @@ void signal_handler(int sig, siginfo_t *, void *)
   if (sig == SIGTERM || sig == SIGINT)
   {
     spdlog::info("Tampering event reading...");
+    lsp::Reader::stopping.store(true);
     char stop = '1';
     int fd = open("/sys/kernel/security/tamper", O_WRONLY);
     if (fd < 0 || write(fd, &stop, sizeof(char)) == -1)
