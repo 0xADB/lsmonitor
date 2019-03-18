@@ -25,6 +25,7 @@ conan_basic_setup(TARGETS)
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/lsmonitor
   ${CMAKE_CURRENT_SOURCE_DIR}/lsprobe
+  ${CMAKE_CURRENT_SOURCE_DIR}/stlab
   ${CONAN_INCLUDE_DIRS_SPDLOG}
   ${CONAN_INCLUDE_DIRS_FMT}
   )
@@ -38,11 +39,14 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/stlab)
 add_executable(lsmonitor
   lsmonitor/main.cpp
   lsmonitor/lsprobe_reader.cpp
+  lsmonitor/lsprobe_event.cpp
   )
 
 set_target_properties(lsmonitor PROPERTIES
   COMPILE_OPTIONS "-std=c++17;-Wpedantic;-Wall;-Wextra"
   )
+
+target_link_libraries(lsmonitor pthread)
 
 install(TARGETS lsmonitor RUNTIME DESTINATION bin)
 
