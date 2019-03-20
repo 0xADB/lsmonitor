@@ -44,6 +44,7 @@ add_executable(lsmonitor
 
 set_target_properties(lsmonitor PROPERTIES
   COMPILE_OPTIONS "-std=c++17;-Wpedantic;-Wall;-Wextra"
+  LINK_FLAGS "-static-libstdc++"
   )
 
 target_link_libraries(lsmonitor pthread)
