@@ -13,6 +13,8 @@
 #include <stdexcept>
 #include <atomic>
 
+#include <stdio.h>
+
 #include "stlab/concurrency/channel.hpp"
 #include "stlab/concurrency/default_executor.hpp"
 #include "stlab/concurrency/immediate_executor.hpp"
@@ -24,12 +26,12 @@ void signal_handler(int sig, siginfo_t *, void *)
     spdlog::info("Tampering event reading...");
     lsp::Reader::stopping.store(true);
     char stop = '1';
-    int fd = open("/sys/kernel/security/tamper", O_WRONLY);
+    int fd = open("/sys/kernel/security/lsprobe/tamper", O_WRONLY);
     if (fd < 0 || write(fd, &stop, sizeof(char)) == -1)
     {
       int err = errno;
       throw std::runtime_error(
-	  fmt::format("Cannot write tamper byte to '/sys/kernel/security/tamper': {0} - {1}", err, ::strerror(err))
+	  fmt::format("Cannot write tamper byte to '/sys/kernel/security/lsprobe/tamper': {0} - {1}", err, ::strerror(err))
 	  );
     }
     close(fd);
@@ -79,6 +81,17 @@ int main()
 	    , event->gid
 	    , event->filename.c_str()
 	    );
+	printf("%s: sending [%d] [%d:%s] [%s:%d:%d] %s"
+	    , __PRETTY_FUNCTION__
+	    , event->code
+	    , event->pid
+	    , event->process.c_str()
+	    , event->user.c_str()
+	    , event->uid
+	    , event->gid
+	    , event->filename.c_str()
+	    );
+
 	return event;
       }
     | [&done](std::unique_ptr<lsp::FileEvent> x) { done.store(static_cast<bool>(x)); };
@@ -89,7 +102,7 @@ int main()
   lsreader.operator()(); // i.e. send()
 
   while (!done.load())
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
   return 0;
 }

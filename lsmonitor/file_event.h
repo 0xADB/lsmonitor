@@ -4,32 +4,25 @@
 #include "lsp_event.h"
 #include "utility.h"
 
-#include "spdlog/spdlog.h"
-
 #include <string>
 #include <vector>
 #include <memory>
 
 #include <sys/types.h>
+#include <sys/fanotify.h>
 
-namespace lsp
+namespace fan
 {
-  struct FileEvent : public Event
+  struct FileEvent : public lsp::Event
   {
-    FileEvent(const lsp_event_t * lsp_event)
-      : code(static_cast<lsp_event_code_t>(lsp_event->code))
-      , pid(lsp_event->pid)
-      , uid(lsp_event->uid)
-      , gid(lsp_event->gid)
-      , filename(
-	  lsp_event_field_first_const(lsp_event)->value
-	  , lsp_event_field_first_const(lsp_event)->size
-	  )
-      , process(
-	  lsp_event_field_get_const(lsp_event, 1)->value
-	  , lsp_event_field_get_const(lsp_event, 1)->size
-	  )
-      , user(getUsername(lsp_event->uid))
+    FileEvent(const fanotify_event_metadata * fa)
+      : code((fa->mask & FAN_OPEN) ?  LSP_EVENT_CODE_OPEN : LSP_EVENT_CODE_NONE)
+      , pid(fa->pid)
+      , uid(0)
+      , gid(0)
+      , filename(lsp::getFdPath(fa->fd))
+      , process(lsp::getPidComm(fa->pid))
+      , user()
     {
       spdlog::trace("{0}: [{1}] : [{2}] : [{3}]"
 	  , __PRETTY_FUNCTION__
@@ -57,7 +50,7 @@ namespace lsp
     virtual std::string toString() const final
     {
       return fmt::format("{0}: [{1}] : [{2}] : [{3}]"
-	  , "LSP"
+	  , "FAN"
 	  , process.c_str()
 	  , user.c_str()
 	  , filename.c_str()
@@ -72,4 +65,4 @@ namespace lsp
     std::string process{};
     std::string user{};
   };
-}
+} // lsp

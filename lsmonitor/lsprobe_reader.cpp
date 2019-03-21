@@ -34,7 +34,7 @@ void lsp::Reader::operator()()
   ssize_t bytesRead = ::read(_eventsFd, event, LSP_EVENT_MAX_SIZE);
   while (!stopping.load() && bytesRead > 0)
   {
-    spdlog::trace("{0}: sending [{1:d}] [{2:d}] [{3:d}:{4:d}] {5}"
+    spdlog::info("{0}: sending [{1:d}] [{2:d}] [{3:d}:{4:d}] {5}"
 	, __PRETTY_FUNCTION__
 	, event->code
 	, event->pid

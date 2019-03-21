@@ -40,6 +40,7 @@ add_executable(lsmonitor
   lsmonitor/main.cpp
   lsmonitor/lsprobe_reader.cpp
   lsmonitor/lsprobe_event.cpp
+  lsmonitor/utility.cpp
   )
 
 set_target_properties(lsmonitor PROPERTIES
