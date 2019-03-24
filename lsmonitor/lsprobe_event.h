@@ -1,6 +1,5 @@
 #pragma once
 
-#include "event.h"
 #include "lsp_event.h"
 #include "utility.h"
 
@@ -14,29 +13,21 @@
 
 namespace lsp
 {
-  struct FileEvent : public Event
+  struct FileEvent
   {
-    FileEvent(const lsp_event_t * lsp_event)
-      : code(static_cast<lsp_event_code_t>(lsp_event->code))
-      , pid(lsp_event->pid)
-      , uid(lsp_event->uid)
-      , gid(lsp_event->gid)
+    FileEvent(const lsp_event_t * event)
+      : code(static_cast<lsp_event_code_t>(event->code))
+      , pcred(event->pcred)
       , filename(
-	  lsp_event_field_first_const(lsp_event)->value
-	  , lsp_event_field_first_const(lsp_event)->size
+	  lsp_event_field_first_const(event)->value
 	  )
       , process(
-	  lsp_event_field_get_const(lsp_event, 1)->value
-	  , lsp_event_field_get_const(lsp_event, 1)->size
+	  lsp_event_field_get_const(event, 1)->value
 	  )
-      , user(getUsername(lsp_event->uid))
+      , user(linux::getPwuser(static_cast<uid_t>(event->pcred.uid)))
+      , group(linux::getPwgroup(static_cast<gid_t>(event->pcred.gid)))
     {
-      spdlog::trace("{0}: [{1}] : [{2}] : [{3}]"
-	  , __PRETTY_FUNCTION__
-	  , process.c_str()
-	  , user.c_str()
-	  , filename.c_str()
-	  );
+      ++count;
     }
 
     FileEvent() = default;
@@ -44,32 +35,18 @@ namespace lsp
     FileEvent(const FileEvent&) = default;
     FileEvent& operator=(FileEvent&&) = default;
     FileEvent& operator=(const FileEvent&) = default;
-    virtual ~FileEvent() final
+    ~FileEvent()
     {
-      spdlog::trace("{0}: [{1}] : [{2}] : [{3}]"
-	  , __PRETTY_FUNCTION__
-	  , process.c_str()
-	  , user.c_str()
-	  , filename.c_str()
-	  );
+      --count;
     };
 
-    virtual std::string toString() const final
-    {
-      return fmt::format("{0}: [{1}] : [{2}] : [{3}]"
-	  , "LSP"
-	  , process.c_str()
-	  , user.c_str()
-	  , filename.c_str()
-	  );
-    }
-
     lsp_event_code_t code{};
-    pid_t pid{};
-    uid_t uid{};
-    gid_t gid{};
+    lsp_cred_t pcred{};
     std::string filename{};
     std::string process{};
     std::string user{};
+    std::string group{};
+
+    static std::atomic_int count;
   };
 }

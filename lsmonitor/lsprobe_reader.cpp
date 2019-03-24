@@ -14,14 +14,14 @@ std::atomic_bool lsp::Reader::stopping{};
 
 lsp::Reader::~Reader()
 {
-  if (_eventsFd > 0)
-    close(_eventsFd);
+  if (_fd > 0)
+    close(_fd);
 }
 
 void lsp::Reader::operator()()
 {
-  _eventsFd = open("/sys/kernel/security/lsprobe/events", O_RDONLY);
-  if (_eventsFd == -1)
+  _fd = open("/sys/kernel/security/lsprobe/events", O_RDONLY);
+  if (_fd == -1)
   {
     int err = errno;
     throw std::runtime_error(
@@ -29,28 +29,27 @@ void lsp::Reader::operator()()
 	);
   }
 
-  lsp_event_t * event = new(_buffer.get()) lsp_event_t;
+  std::vector<std::byte> _buffer(LSP_EVENT_MAX_SIZE);
+  lsp_event_t * event = new(_buffer.data()) lsp_event_t;
 
-  ssize_t bytesRead = ::read(_eventsFd, event, LSP_EVENT_MAX_SIZE);
+  ssize_t bytesRead = ::read(_fd, event, LSP_EVENT_MAX_SIZE);
   while (!stopping.load() && bytesRead > 0)
   {
-    spdlog::info("{0}: sending [{1:d}] [{2:d}] [{3:d}:{4:d}] {5}"
-	, __PRETTY_FUNCTION__
-	, event->code
-	, event->pid
-	, event->uid
-	, event->gid
-	, lsp_event_field_first(event)->value
-	);
-    // send(event);
-    bytesRead = ::read(_eventsFd, event, LSP_EVENT_MAX_SIZE);
+    _send(std::make_unique<FileEvent>(event));
+    if (!stopping.load())
+      bytesRead = ::read(_fd, event, LSP_EVENT_MAX_SIZE);
   }
+
+  int err = errno;
+  close(_fd);
+  _fd = 0;
 
   if (bytesRead < 0)
   {
-    int err = errno;
     throw std::runtime_error(
 	fmt::format("Events reading error: {0} - {1}", err, ::strerror(err))
 	);
   }
+  else
+    spdlog::info("{0}: I quit", __PRETTY_FUNCTION__);
 }

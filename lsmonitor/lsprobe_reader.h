@@ -12,6 +12,8 @@ namespace lsp
 {
   struct Reader
   {
+    using event_t = std::unique_ptr<lsp::FileEvent>;
+
     Reader() = default;
     Reader(const Reader&) = delete;
     Reader& operator=(const Reader&) = delete;
@@ -19,15 +21,15 @@ namespace lsp
     Reader& operator=(Reader&&) = default;
     ~Reader();
 
-    Reader(stlab::sender<const lsp_event_t *>&& send)
+    Reader(stlab::sender<event_t>&& send)
       : _send(std::move(send))
     {}
 
     void operator()();
 
-    int _eventsFd{};
-    std::unique_ptr<std::byte[]> _buffer = std::make_unique<std::byte[]>(LSP_EVENT_MAX_SIZE);
-    stlab::sender<const lsp_event_t *> _send;
+    int _fd{};
+    stlab::sender<event_t> _send;
+
     static std::atomic_bool stopping;
   };
 } // lsp

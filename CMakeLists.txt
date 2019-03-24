@@ -26,6 +26,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/lsmonitor
   ${CMAKE_CURRENT_SOURCE_DIR}/lsprobe
   ${CMAKE_CURRENT_SOURCE_DIR}/stlab
+  ${CONAN_INCLUDE_DIRS_ARGH}
   ${CONAN_INCLUDE_DIRS_SPDLOG}
   ${CONAN_INCLUDE_DIRS_FMT}
   )
@@ -39,7 +40,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/stlab)
 add_executable(lsmonitor
   lsmonitor/main.cpp
   lsmonitor/lsprobe_reader.cpp
-  lsmonitor/lsprobe_event.cpp
+  lsmonitor/fanotify_reader.cpp
   lsmonitor/utility.cpp
   )
 

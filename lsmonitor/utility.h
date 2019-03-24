@@ -3,9 +3,10 @@
 #include <string>
 #include <sys/types.h>
 
-namespace lsp
+namespace linux
 {
-  std::string getUsername(uid_t uid);
-  std::string getPidComm(pid_t pid);
+  std::string getPwuser(uid_t);
+  std::string getPwgroup(gid_t);
+  std::string getPidComm(pid_t);
   std::string getFdPath(int fd);
 }
