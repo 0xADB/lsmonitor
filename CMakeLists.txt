@@ -12,7 +12,7 @@ endif()
 set(CONANFILE ${CMAKE_SOURCE_DIR}/conanfile.txt)
 set(CONANFILE_CMAKE ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 execute_process(
-  COMMAND ${CONAN} install --update --remote conan-center -s os=${CMAKE_HOST_SYSTEM_NAME} -s compiler.libcxx=libstdc++11 ${CMAKE_SOURCE_DIR} RESULT_VARIABLE CONAN_RETURN_CODE
+  COMMAND ${CONAN} install --update --remote conan-center --build=missing -s os=${CMAKE_HOST_SYSTEM_NAME} -s compiler.libcxx=libstdc++11 ${CMAKE_SOURCE_DIR} RESULT_VARIABLE CONAN_RETURN_CODE
   )
 
 if(NOT ${CONAN_RETURN_CODE} EQUAL 0)
