@@ -27,7 +27,7 @@ namespace lsp
       , user(linux::getPwuser(static_cast<uid_t>(event->pcred.uid)))
       , group(linux::getPwgroup(static_cast<gid_t>(event->pcred.gid)))
     {
-      ++count;
+      spdlog::debug("{0}: {1}", __PRETTY_FUNCTION__, filename);
     }
 
     FileEvent() = default;
@@ -35,10 +35,7 @@ namespace lsp
     FileEvent(const FileEvent&) = default;
     FileEvent& operator=(FileEvent&&) = default;
     FileEvent& operator=(const FileEvent&) = default;
-    ~FileEvent()
-    {
-      --count;
-    };
+    ~FileEvent() = default;
 
     lsp_event_code_t code{};
     lsp_cred_t pcred{};
@@ -46,7 +43,5 @@ namespace lsp
     std::string process{};
     std::string user{};
     std::string group{};
-
-    static std::atomic_int count;
   };
 }

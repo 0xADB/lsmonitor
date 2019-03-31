@@ -36,19 +36,7 @@ namespace fan
       , user("n/a")
       , group("n/a"/*linux::getPwgroup(gid)*/) // FIXME: causes recursion on /etc/group
     {
-      ++count;
-      spdlog::debug("{0}[{1:d}]: start [{2:d}] [{3:d}:{4}] [{5}({6:d}):{7}({8:d})] {9}"
-	  , __PRETTY_FUNCTION__
-	  , count.load()
-	  , static_cast<int>(code)
-	  , pid
-	  , process.c_str()
-	  , user.c_str()
-	  , uid
-	  , group.c_str()
-	  , gid
-	  , filename.c_str()
-	  );
+      spdlog::debug("{0}: {1}", __PRETTY_FUNCTION__, filename);
     }
 
     FileEvent() = default;
@@ -56,10 +44,7 @@ namespace fan
     FileEvent(const FileEvent&) = default;
     FileEvent& operator=(FileEvent&&) = default;
     FileEvent& operator=(const FileEvent&) = default;
-    ~FileEvent()
-    {
-      --count;
-    }
+    ~FileEvent() = default;
 
     EventCode code{};
     pid_t pid{};
@@ -69,7 +54,5 @@ namespace fan
     std::string process{};
     std::string user{};
     std::string group{};
-
-    static std::atomic_int count;
   };
 } // lsp

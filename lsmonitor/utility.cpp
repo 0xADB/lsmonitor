@@ -20,15 +20,11 @@ std::string linux::getPwuser(uid_t uid)
   if (bufsize == -1)
     bufsize = 16384;
   std::vector<char> pwdData(bufsize);
-  int err = getpwuid_r(uid, &pwd, pwdData.data(), pwdData.size(), &result);
+  std::error_code err(getpwuid_r(uid, &pwd, pwdData.data(), pwdData.size(), &result), std::system_category());
   if (!err && result)
-  {
     value = pwd.pw_name;
-  }
   else if (err)
-  {
-    spdlog::warn("Unable get username of '{0}': {1} - {2}", uid, err, ::strerror(err));
-  }
+    spdlog::warn("Unable get username of '{0}': {1} - {2}", uid, err.value(), err.message());
 
   return value;
 }
@@ -42,15 +38,11 @@ std::string linux::getPwgroup(gid_t gid)
   if (bufsize == -1)
     bufsize = 16384;
   std::vector<char> pwdData(bufsize);
-  int err = getgrgid_r(gid, &pwd, pwdData.data(), pwdData.size(), &result);
+  std::error_code err(getgrgid_r(gid, &pwd, pwdData.data(), pwdData.size(), &result), std::system_category());
   if (!err && result)
-  {
     value = pwd.gr_name;
-  }
   else if (err)
-  {
-    spdlog::warn("Unable get groupname of '{0}': {1} - {2}", gid, err, ::strerror(err));
-  }
+    spdlog::warn("Unable get groupname of '{0}': {1} - {2}", gid, err.value(), err.message());
 
   return value;
 }
@@ -59,8 +51,8 @@ std::string linux::getPidComm(pid_t pid)
 {
   std::string comm("no_process");
   std::ifstream commFile(fmt::format("/proc/{0}/comm", pid).c_str());
-  if (commFile.is_open() && !std::getline(commFile, comm))
-    comm = "error";
+  if (commFile.is_open())
+    std::getline(commFile, comm);
   return comm;
 }
 
@@ -78,8 +70,8 @@ std::string linux::getFdPath(int fd)
   }
   else
   {
-    int err = errno;
-    spdlog::warn("Unable to get link of '{0}': {1} - {2}", fdPath.c_str(), err, ::strerror(err));
+    std::error_code err(errno, std::system_category());
+    spdlog::warn("Unable to get link of '{0}': {1} - {2}", fdPath, err.value(), err.message());
   }
 
   return file;

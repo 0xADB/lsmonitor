@@ -41,6 +41,8 @@ add_executable(lsmonitor
   lsmonitor/main.cpp
   lsmonitor/lsprobe_reader.cpp
   lsmonitor/fanotify_reader.cpp
+  lsmonitor/control_reader.cpp
+  lsmonitor/source_manager.cpp
   lsmonitor/utility.cpp
   )
 
@@ -49,7 +51,7 @@ set_target_properties(lsmonitor PROPERTIES
   LINK_FLAGS "-static-libstdc++"
   )
 
-target_link_libraries(lsmonitor pthread)
+target_link_libraries(lsmonitor pthread stdc++fs)
 
 install(TARGETS lsmonitor RUNTIME DESTINATION bin)
 

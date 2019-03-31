@@ -18,14 +18,14 @@ lsp::Reader::~Reader()
     close(_fd);
 }
 
-void lsp::Reader::operator()()
+void lsp::Reader::operator()(stlab::sender<event_t>&& _send)
 {
   _fd = open("/sys/kernel/security/lsprobe/events", O_RDONLY);
   if (_fd == -1)
   {
-    int err = errno;
+    std::error_code err(errno, std::system_category());
     throw std::runtime_error(
-	fmt::format("Cannot open '/sys/kernel/security/lsprobe/events': {0} - {1}", err, ::strerror(err))
+	fmt::format("Cannot open '/sys/kernel/security/lsprobe/events': {0} - {1}", err.value(), err.message())
 	);
   }
 
@@ -40,16 +40,16 @@ void lsp::Reader::operator()()
       bytesRead = ::read(_fd, event, LSP_EVENT_MAX_SIZE);
   }
 
-  int err = errno;
+  std::error_code err(errno, std::system_category());
   close(_fd);
   _fd = 0;
 
   if (bytesRead < 0)
   {
     throw std::runtime_error(
-	fmt::format("Events reading error: {0} - {1}", err, ::strerror(err))
+	fmt::format("Events reading error: {0} - {1}", err.value(), err.message())
 	);
   }
   else
-    spdlog::info("{0}: I quit", __PRETTY_FUNCTION__);
+    spdlog::debug("{0}: I quit", __PRETTY_FUNCTION__);
 }
