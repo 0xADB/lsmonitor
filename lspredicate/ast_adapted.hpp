@@ -17,7 +17,13 @@ BOOST_FUSION_ADAPT_STRUCT(
     )
 
 BOOST_FUSION_ADAPT_STRUCT(
-    lspredicate::ast::expression
+    lspredicate::ast::disjunctive_expression
+    , (lspredicate::ast::operand, head)
+    , (std::list<lspredicate::ast::operation>, tail)
+    )
+
+BOOST_FUSION_ADAPT_STRUCT(
+    lspredicate::ast::conjunctive_expression
     , (lspredicate::ast::operand, head)
     , (std::list<lspredicate::ast::operation>, tail)
     )

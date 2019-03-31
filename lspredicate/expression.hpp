@@ -10,7 +10,7 @@ namespace lspredicate
   {
     namespace x3 = boost::spirit::x3;
     struct expression_class;
-    using expression_type = x3::rule<expression_class, ast::expression>;
+    using expression_type = x3::rule<expression_class, ast::disjunctive_expression>;
     BOOST_SPIRIT_DECLARE(expression_type)
   } // parser
 

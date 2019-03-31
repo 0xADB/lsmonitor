@@ -122,7 +122,7 @@ int main(int argc, char ** argv)
   setup_signal_handler();
 
   SourceManager manager;
-  lsp::CmdlSimplePredicate predicate(cmdl);
+  lsp::predicate::CmdlSimpleConjunctive predicate(cmdl);
 
   if (cmdl["--any"])
   {

@@ -10,6 +10,7 @@
 #include <memory>
 
 #include <sys/types.h>
+#include "lspredicate/ast.hpp"
 
 namespace lsp
 {
@@ -44,4 +45,9 @@ namespace lsp
     std::string user{};
     std::string group{};
   };
+
+  namespace predicate
+  {
+    bool evaluate(const std::unique_ptr<FileEvent>& event, lspredicate::ast::expression const& ast);
+  }
 }

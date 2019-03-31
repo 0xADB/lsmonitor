@@ -7,10 +7,10 @@
 
 struct SourceManager
 {
-  void only(lsp::Reader&&, lsp::CmdlSimplePredicate&&);
-  void only(fan::Reader&&, lsp::CmdlSimplePredicate&&);
-  void any(lsp::Reader&&, fan::Reader&&, lsp::CmdlSimplePredicate&&);
-  void count_strings(lsp::Reader&&, fan::Reader&&, lsp::CmdlSimplePredicate&&);
-  void intersection(lsp::Reader&&, fan::Reader&&, lsp::CmdlSimplePredicate&&);
-  void difference(lsp::Reader&&, fan::Reader&&, lsp::CmdlSimplePredicate&&);
+  void only(lsp::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
+  void only(fan::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
+  void any(lsp::Reader&&, fan::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
+  void count_strings(lsp::Reader&&, fan::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
+  void intersection(lsp::Reader&&, fan::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
+  void difference(lsp::Reader&&, fan::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
 };

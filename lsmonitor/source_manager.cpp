@@ -15,6 +15,19 @@
 #include <iomanip>
 #include <iostream>
 
+namespace lsp
+{
+  struct SameFilename
+  {
+    template<typename L, typename R>
+      bool operator()(const L& l, const R& r) const
+      {
+	spdlog::debug("comparing filenames: {0} == {1}", l->filename, r->filename);
+	return (l->filename == r->filename);
+      }
+  };
+} //lsp
+
 void printStats(const std::map<std::string, size_t>& stats, int width = 70)
 {
   if (stats.empty()) return;
@@ -24,7 +37,7 @@ void printStats(const std::map<std::string, size_t>& stats, int width = 70)
   std::cout << std::endl;
 }
 
-void SourceManager::only(lsp::Reader&& reader, lsp::CmdlSimplePredicate&& predicate)
+void SourceManager::only(lsp::Reader&& reader, lsp::predicate::CmdlSimpleConjunctive&& predicate)
 {
   using event_t = std::unique_ptr<lsp::FileEvent>;
   stlab::sender<event_t> sender;
@@ -47,7 +60,7 @@ void SourceManager::only(lsp::Reader&& reader, lsp::CmdlSimplePredicate&& predic
 	    );
 	return event;
       }
-    | lsp::filter<event_t, lsp::CmdlSimplePredicate>{predicate} // TODO: multievent predicate
+    | lsp::filter<event_t, lsp::predicate::CmdlSimpleConjunctive>{predicate} // TODO: multievent predicate
     | lsp::stringify{}
     | [](std::string&& str) {spdlog::info("{0} | {1}", "only", str);}; // last one shouldn't return
 
@@ -56,7 +69,7 @@ void SourceManager::only(lsp::Reader&& reader, lsp::CmdlSimplePredicate&& predic
   reader.operator()(std::move(sender)); // listen and send
 }
 
-void SourceManager::only(fan::Reader&& reader, lsp::CmdlSimplePredicate&& predicate)
+void SourceManager::only(fan::Reader&& reader, lsp::predicate::CmdlSimpleConjunctive&& predicate)
 {
   using event_t = std::unique_ptr<fan::FileEvent>;
   stlab::sender<event_t> sender;
@@ -77,7 +90,7 @@ void SourceManager::only(fan::Reader&& reader, lsp::CmdlSimplePredicate&& predic
 	    );
 	return event;
       }
-    | lsp::filter<event_t, lsp::CmdlSimplePredicate>{predicate}
+    | lsp::filter<event_t, lsp::predicate::CmdlSimpleConjunctive>{predicate}
     | lsp::stringify{}
     | [](std::string&& str) {spdlog::info("{0} | {1}", "only", str);}; // last one shouldn't return
 
@@ -86,7 +99,7 @@ void SourceManager::only(fan::Reader&& reader, lsp::CmdlSimplePredicate&& predic
   reader.operator()(std::move(sender), std::string("/home/")); // listen and send
 }
 
-void SourceManager::any(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp::CmdlSimplePredicate&& predicate)
+void SourceManager::any(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp::predicate::CmdlSimpleConjunctive&& predicate)
 {
   using lsp_event_t = std::unique_ptr<lsp::FileEvent>;
   using fan_event_t = std::unique_ptr<fan::FileEvent>;
@@ -107,7 +120,7 @@ void SourceManager::any(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp:
 	    );
 	return event;
       }
-    | lsp::filter<lsp_event_t, lsp::CmdlSimplePredicate>{predicate}
+    | lsp::filter<lsp_event_t, lsp::predicate::CmdlSimpleConjunctive>{predicate}
     | lsp::stringify{}
     | [](std::string&& str) {spdlog::info("{0} | lsp: {1}", "any", str);};
 
@@ -124,7 +137,7 @@ void SourceManager::any(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp:
 	    );
 	return event;
       }
-    | lsp::filter<fan_event_t, lsp::CmdlSimplePredicate>{predicate}
+    | lsp::filter<fan_event_t, lsp::predicate::CmdlSimpleConjunctive>{predicate}
     | lsp::stringify{}
     | [](std::string&& str) {spdlog::info("{0} | fan: {1}", "any", str);};
 
@@ -138,7 +151,7 @@ void SourceManager::any(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp:
   lsp_thread.join();
 }
 
-void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp::CmdlSimplePredicate&& predicate)
+void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp::predicate::CmdlSimpleConjunctive&& predicate)
 {
   using lsp_event_t = std::unique_ptr<lsp::FileEvent>;
   stlab::sender<lsp_event_t> lsp_send;
@@ -166,7 +179,7 @@ void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_re
             );
         return event;
       }
-    | lsp::filter<lsp_event_t, lsp::CmdlSimplePredicate>{predicate}
+    | lsp::filter<lsp_event_t, lsp::predicate::CmdlSimpleConjunctive>{predicate}
     | lsp::stringify{};
 
   auto fan_r =
@@ -182,7 +195,7 @@ void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_re
             );
         return event;
       }
-    | lsp::filter<fan_event_t, lsp::CmdlSimplePredicate>{predicate}
+    | lsp::filter<fan_event_t, lsp::predicate::CmdlSimpleConjunctive>{predicate}
     | lsp::stringify{};
 
   auto merged = stlab::merge_channel<stlab::unordered_t>(stlab::default_executor
@@ -209,7 +222,7 @@ void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_re
 
 }
 
-void SourceManager::intersection(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp::CmdlSimplePredicate&& predicate)
+void SourceManager::intersection(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp::predicate::CmdlSimpleConjunctive&& predicate)
 {
   using lsp_event_t = std::unique_ptr<lsp::FileEvent>;
   using fan_event_t = std::unique_ptr<fan::FileEvent>;
@@ -230,7 +243,7 @@ void SourceManager::intersection(lsp::Reader&& lsp_reader, fan::Reader&& fan_rea
             );
         return event;
       }
-    | lsp::filter<lsp_event_t, lsp::CmdlSimplePredicate>{predicate};
+    | lsp::filter<lsp_event_t, lsp::predicate::CmdlSimpleConjunctive>{predicate};
 
   auto fan_r =
     fan_channel.second
@@ -245,11 +258,11 @@ void SourceManager::intersection(lsp::Reader&& lsp_reader, fan::Reader&& fan_rea
             );
         return event;
       }
-    | lsp::filter<fan_event_t, lsp::CmdlSimplePredicate>{predicate};
+    | lsp::filter<fan_event_t, lsp::predicate::CmdlSimpleConjunctive>{predicate};
 
   auto combined_channel =
     stlab::zip_with(stlab::default_executor
-      , lsp::adjacent_if<lsp::SameFilenamePredicate, lsp_event_t, fan_event_t>{lsp::SameFilenamePredicate{}}
+      , lsp::adjacent_if<lsp::SameFilename, lsp_event_t, fan_event_t>{lsp::SameFilename{}}
       , std::move(lsp_r)
       , std::move(fan_r)
       )
@@ -278,7 +291,7 @@ void SourceManager::intersection(lsp::Reader&& lsp_reader, fan::Reader&& fan_rea
   lsp_thread.join();
 }
 
-void SourceManager::difference(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp::CmdlSimplePredicate&& predicate)
+void SourceManager::difference(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, lsp::predicate::CmdlSimpleConjunctive&& predicate)
 {
   using lsp_event_t = std::unique_ptr<lsp::FileEvent>;
   using fan_event_t = std::unique_ptr<fan::FileEvent>;
@@ -301,7 +314,7 @@ void SourceManager::difference(lsp::Reader&& lsp_reader, fan::Reader&& fan_reade
 	    );
 	return event;
       }
-    | lsp::filter<lsp_event_t, lsp::CmdlSimplePredicate>{predicate};
+    | lsp::filter<lsp_event_t, lsp::predicate::CmdlSimpleConjunctive>{predicate};
 
   auto fan_r =
     fan_channel.second
@@ -316,14 +329,14 @@ void SourceManager::difference(lsp::Reader&& lsp_reader, fan::Reader&& fan_reade
 	    );
 	return event;
       }
-    | lsp::filter<fan_event_t, lsp::CmdlSimplePredicate>{predicate};
+    | lsp::filter<fan_event_t, lsp::predicate::CmdlSimpleConjunctive>{predicate};
 
   auto combined_channel = stlab::zip_with(stlab::default_executor
       , lsp::adjacent_if<
-	  decltype(std::not_fn(lsp::SameFilenamePredicate{}))
+	  decltype(std::not_fn(lsp::SameFilename{}))
 	  , lsp_event_t
 	  , fan_event_t
-	  >{std::not_fn(lsp::SameFilenamePredicate{})}
+	  >{std::not_fn(lsp::SameFilename{})}
       , std::move(lsp_r)
       , std::move(fan_r)
       )

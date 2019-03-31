@@ -23,19 +23,34 @@ include(${CONANFILE_CMAKE})
 conan_basic_setup(TARGETS)
 
 include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/lspredicate
   ${CMAKE_CURRENT_SOURCE_DIR}/lsmonitor
   ${CMAKE_CURRENT_SOURCE_DIR}/lsprobe
   ${CMAKE_CURRENT_SOURCE_DIR}/stlab
   ${CONAN_INCLUDE_DIRS_ARGH}
   ${CONAN_INCLUDE_DIRS_SPDLOG}
   ${CONAN_INCLUDE_DIRS_FMT}
+  ${CONAN_INCLUDE_DIRS_BOOST}
   )
 
 link_directories(
   ${CONAN_LIB_DIRS}
+  ${CONAN_LIB_DIRS_BOOST}
   )
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/stlab)
+
+add_library(lspredicate STATIC
+  lspredicate/printer.cpp
+  )
+
+set_target_properties(lspredicate PROPERTIES
+  COMPILE_OPTIONS "-std=c++17;-Wpedantic;-Wall;-Wextra"
+  )
+
+target_link_libraries(lspredicate ${CONAN_LIBS_BOOST})
+
 
 add_executable(lsmonitor
   lsmonitor/main.cpp
@@ -44,6 +59,9 @@ add_executable(lsmonitor
   lsmonitor/control_reader.cpp
   lsmonitor/source_manager.cpp
   lsmonitor/utility.cpp
+  lsmonitor/lsprobe_event.cpp
+  lsmonitor/fanotify_event.cpp
+  lsmonitor/file_event_predicate.cpp
   )
 
 set_target_properties(lsmonitor PROPERTIES
@@ -51,9 +69,13 @@ set_target_properties(lsmonitor PROPERTIES
   LINK_FLAGS "-static-libstdc++"
   )
 
-target_link_libraries(lsmonitor pthread stdc++fs)
+target_link_libraries(lsmonitor lspredicate pthread stdc++fs ${CONAN_LIBS_BOOST})
 
-install(TARGETS lsmonitor RUNTIME DESTINATION bin)
+
+install(TARGETS lsmonitor
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION usr/local/lib
+  )
 
 set(CPACK_GENERATOR DEB)
 

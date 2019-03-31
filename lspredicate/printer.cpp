@@ -74,6 +74,17 @@ namespace lspredicate
 	  boost::apply_visitor(*this, ast.operand_);
 	}
 
+	void operator()(ast::conjunctive_expression const& ast) const
+	{
+	  if (ast.tail.size())
+	    out << '(';
+	  boost::apply_visitor(*this, ast.head);
+	  for (auto const& oper : ast.tail)
+	    (*this)(oper);
+	  if (ast.tail.size())
+	    out << ')';
+	}
+
 	void operator()(ast::expression const& ast) const
 	{
 	  if (ast.tail.size())

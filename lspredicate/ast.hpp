@@ -14,7 +14,8 @@ namespace lspredicate
     namespace x3 = boost::spirit::x3;
 
     struct negated;
-    struct expression;
+    struct disjunctive_expression;
+    struct conjunctive_expression;
     struct comparison;
 
     struct operand
@@ -22,7 +23,8 @@ namespace lspredicate
 	bool
 	, x3::forward_ast<negated>
 	, x3::forward_ast<comparison>
-	, x3::forward_ast<expression>
+	, x3::forward_ast<disjunctive_expression>
+	, x3::forward_ast<conjunctive_expression>
 	>
     {
       using base_type::base_type;
@@ -41,7 +43,13 @@ namespace lspredicate
       operand operand_;
     };
 
-    struct expression : x3::position_tagged
+    struct disjunctive_expression : x3::position_tagged
+    {
+      operand head;
+      std::list<operation> tail; // TODO: vector
+    };
+
+    struct conjunctive_expression : x3::position_tagged
     {
       operand head;
       std::list<operation> tail; // TODO: vector
@@ -71,5 +79,7 @@ namespace lspredicate
     };
 
     using boost::fusion::operator<<;
+
+    using expression = disjunctive_expression;
   } //ast
 } //lspredicate

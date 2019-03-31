@@ -10,6 +10,7 @@
 
 #include <sys/types.h>
 #include <sys/fanotify.h>
+#include "lspredicate/ast.hpp"
 
 namespace fan
 {
@@ -55,4 +56,9 @@ namespace fan
     std::string user{};
     std::string group{};
   };
+
+  namespace predicate
+  {
+    bool evaluate(const std::unique_ptr<FileEvent>& event, lspredicate::ast::expression const& ast);
+  }
 } // lsp
