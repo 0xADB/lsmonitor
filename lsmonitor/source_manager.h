@@ -5,12 +5,14 @@
 #include "fanotify_reader.h"
 #include "lsprobe_reader.h"
 
-struct SourceManager
-{
-  void only(lsp::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
-  void only(fan::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
-  void any(lsp::Reader&&, fan::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
-  void count_strings(lsp::Reader&&, fan::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
-  void intersection(lsp::Reader&&, fan::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
-  void difference(lsp::Reader&&, fan::Reader&&, lsp::predicate::CmdlSimpleConjunctive&&);
-};
+  struct SourceManager
+  {
+    template<typename Predicate> void only(lsp::Reader&&, Predicate&&);
+    template<typename Predicate> void only(fan::Reader&&, Predicate&&);
+    template<typename Predicate> void any(lsp::Reader&&, fan::Reader&&, Predicate&&);
+    template<typename Predicate> void count_strings(lsp::Reader&&, fan::Reader&&, Predicate&&);
+    template<typename Predicate> void intersection(lsp::Reader&&, fan::Reader&&, Predicate&&);
+    template<typename Predicate> void difference(lsp::Reader&&, fan::Reader&&, Predicate&&);
+  };
+
+#include "source_manager.hpp"

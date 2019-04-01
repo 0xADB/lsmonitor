@@ -101,7 +101,7 @@ lsp::predicate::CmdlExpression::CmdlExpression(const std::string& expr)
   {
     //spdlog::critical("Failed to parse predicate ad: \"{0}\"", std::string(it, end));
     throw std::runtime_error(
-	fmt::format("Failed to parse predicate ad: \"{0}\"", std::string(it, end))
+	fmt::format("Failed to parse predicate at: \"{0}\"", std::string(it, end))
 	);
   }
 }

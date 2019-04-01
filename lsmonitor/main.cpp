@@ -76,34 +76,49 @@ void print_usage(const char * argv0)
     << argv0 << " [OPTIONS] [SOURCES] [MODES] [PREDICATE]\n"
     << "\n"
     << "Options:\n"
-    << "\t-d, --debug ................ Enable debug messages\n"
-    << "\t-h, --help ................. This message\n"
+    << "\t-d, --debug .................... Enable debug messages\n"
+    << "\t-h, --help ..................... This message\n"
     << "\n"
     << "Sources:\n"
-    << "\t--fanotify ................. Use fanotify(7) facility as a source (default)\n"
-    << "\t--lsprobe .................. Use /sys/kernel/security/lsprobe/events as a source\n"
+    << "\t--fanotify ..................... Use fanotify(7) facility as a source (default)\n"
+    << "\t--lsprobe ...................... Use /sys/kernel/security/lsprobe/events as a source\n"
     << "\n"
     << "Modes:\n"
-    << "\t--only ..................... Use the only source (default)\n"
-    << "\t--any ...................... Use all sources in parallel\n"
-    << "\t--count_strings ............ Use all sources and merge them stringified\n"
-    << "\t--intersection.............. Use all sources and show only events that came from all sources simultaneosly\n"
+    << "\t--only ......................... Use the only source (default)\n"
+    << "\t--any .......................... Use all sources in parallel\n"
+    << "\t--count_strings ................ Use all sources and merge them stringified\n"
+    << "\t--intersection.................. Use all sources and show only events that came from all sources simultaneosly\n"
     << "\n"
-    << "Simple predicate options (combined with the AND operator):\n"
-    << "\t--file_contains=SUBSTRING .. Only requests to a file containing SUBSTRING\n"
-    << "\t--file=PATH ................ Only requests to a file with the absolute PATH\n"
-    << "\t--pid=ID ................... Only requests from a process with the specified ID\n"
-    << "\t--uid=ID ................... Only requests from a process ran from the user with ID\n"
-    << "\t--gid=ID ................... Only requests from a process ran from the group with ID\n"
-    << "\t--process=PATH ............. Only requests from processes with the specified PATH (or NAME for fanotify)\n"
-//    << "\t--user=NAME ................ Only requests from processes ran from the user with the user NAME\n"
-//    << "\t--group=NAME ............... Only requests from processes ran from the group with with the group NAME\n"
+    << "Predicate is either:\n"
+    << "  ANDed options:\n"
+    << "\t--file_contains=SUBSTRING ...... Only requests to a file containing SUBSTRING\n"
+    << "\t--file=PATH .................... Only requests to a file with the absolute PATH\n"
+    << "\t--pid=ID ....................... Only requests from a process with the specified ID\n"
+    << "\t--uid=ID ....................... Only requests from a process ran from the user with ID\n"
+    << "\t--gid=ID ....................... Only requests from a process ran from the group with ID\n"
+    << "\t--process=PATH ................. Only requests from processes with the specified PATH (or NAME for fanotify)\n"
+//     << "\t--user=NAME .................... Only requests from processes ran from the user with the user NAME\n"
+//     << "\t--group=NAME ................... Only requests from processes ran from the group with with the group NAME\n"
+    << "  or:\n"
+    << "\t--expr='EXPRESSION' ... Expression in a form:\n"
+    << "\t  (file=\"PATH\")||((pid=ID)&&(process=\"PATH\"))\n"
     << std::endl;
 }
 
 int main(int argc, char ** argv)
 {
-  argh::parser cmdl(argc, argv);
+  argh::parser cmdl;
+
+  cmdl.add_params({
+      "file_contains"
+      , "file"
+      , "pid"
+      , "uid"
+      , "gid"
+      , "process"
+      , "expr"
+      });
+  cmdl.parse(argc, argv);
 
   if (cmdl["-h"] || cmdl["--help"])
   {
@@ -122,37 +137,57 @@ int main(int argc, char ** argv)
   setup_signal_handler();
 
   SourceManager manager;
-  lsp::predicate::CmdlSimpleConjunctive predicate(cmdl);
+
+  if (cmdl("--expr"))
+    spdlog::info("Reading predicate: {0}...", cmdl("expr").str());
 
   if (cmdl["--any"])
   {
     spdlog::info("Starting in 'any' mode...");
-    manager.any(lsp::Reader{}, fan::Reader{}, std::move(predicate));
+    if (cmdl("--expr"))
+      manager.any(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
+    else
+      manager.any(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
   }
   else if (cmdl["--count_strings"])
   {
     spdlog::info("Starting in 'count_strings' mode...");
-    manager.count_strings(lsp::Reader{}, fan::Reader{}, std::move(predicate));
+    if (cmdl("--expr"))
+      manager.count_strings(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
+    else
+      manager.count_strings(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
   }
   else if (cmdl["--intersection"])
   {
     spdlog::info("Starting in 'intersection' mode...");
-    manager.intersection(lsp::Reader{}, fan::Reader{}, std::move(predicate));
+    if (cmdl("--expr"))
+      manager.intersection(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
+    else
+      manager.intersection(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
   }
   else if (cmdl["--difference"])
   {
     spdlog::info("Starting in 'difference' mode...");
-    manager.difference(lsp::Reader{}, fan::Reader{}, std::move(predicate));
+    if (cmdl("--expr"))
+      manager.difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
+    else
+      manager.difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
   }
   else if (cmdl["--lsprobe"])
   {
     spdlog::info("Starting lsprobe listening...");
-    manager.only(lsp::Reader{}, std::move(predicate));
+    if (cmdl("--expr"))
+      manager.only(lsp::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
+    else
+      manager.only(lsp::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
   }
   else
   {
     spdlog::info("Starting fanotify listening...");
-    manager.only(fan::Reader{}, std::move(predicate));
+    if (cmdl("--expr"))
+      manager.only(fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
+    else
+      manager.only(fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
   }
 
   spdlog::info("That's all, folks!");

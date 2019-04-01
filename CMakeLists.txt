@@ -63,7 +63,6 @@ add_executable(lsmonitor
   lsmonitor/lsprobe_reader.cpp
   lsmonitor/fanotify_reader.cpp
   lsmonitor/control_reader.cpp
-  lsmonitor/source_manager.cpp
   lsmonitor/utility.cpp
   lsmonitor/lsprobe_event.cpp
   lsmonitor/fanotify_event.cpp
