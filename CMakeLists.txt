@@ -19,6 +19,7 @@ if(NOT ${CONAN_RETURN_CODE} EQUAL 0)
   message(FATAL_ERROR "conan install command failed.")
 endif()
 
+
 include(${CONANFILE_CMAKE})
 conan_basic_setup(TARGETS)
 
@@ -41,6 +42,11 @@ link_directories(
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/stlab)
 
+# add_library(Boost::boost INTERFACE IMPORTED)
+# set_property(TARGET Boost::boost APPEND PROPERTY
+#   INTERFACE_LINK_LIBRARIES CONAN_PKG::boost
+#   )
+
 add_library(lspredicate STATIC
   lspredicate/printer.cpp
   )
@@ -49,7 +55,7 @@ set_target_properties(lspredicate PROPERTIES
   COMPILE_OPTIONS "-std=c++17;-Wpedantic;-Wall;-Wextra"
   )
 
-target_link_libraries(lspredicate ${CONAN_LIBS_BOOST})
+#target_link_libraries(lspredicate Boost::system)
 
 
 add_executable(lsmonitor
@@ -74,8 +80,11 @@ target_link_libraries(lsmonitor lspredicate pthread stdc++fs ${CONAN_LIBS_BOOST}
 
 install(TARGETS lsmonitor
   RUNTIME DESTINATION bin
-  LIBRARY DESTINATION usr/local/lib
   )
+
+#install(TARGETS Boost::boost
+#  LIBRARY DESTINATION usr/local/lib
+#  )
 
 set(CPACK_GENERATOR DEB)
 
