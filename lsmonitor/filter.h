@@ -10,32 +10,32 @@
 
 namespace lsp
 {
-  template <typename EventT, typename Predicate>
+  template <typename Value, typename Predicate>
     struct filter
     {
       Predicate _predicate{};
-      EventT _event{};
+      Value _value{};
       stlab::process_state_scheduled _state = stlab::await_forever;
 
       template<typename T>
-      void await(T event)
+      void await(T&& value)
       {
-	spdlog::debug("{0}: {1}", __PRETTY_FUNCTION__, event->filename);
-	if (_predicate(event))
+	spdlog::debug("{0}: {1}", __PRETTY_FUNCTION__, value->filename);
+	if (_predicate(value))
 	{
-	  _event = EventT(std::move(event));
+	  _value = std::move(value);
 	  _state = stlab::yield_immediate;
 	}
 	else
 	  _state = stlab::await_forever;
       }
 
-      EventT yield()
+      auto yield()
       {
-	EventT event = EventT(std::move(_event));
-	spdlog::debug("{0}: {1}", __PRETTY_FUNCTION__, event->filename);
+	auto value = std::move(_value);
+	spdlog::debug("{0}: {1}", __PRETTY_FUNCTION__, value->filename);
 	_state = stlab::await_forever;
-	return event;
+	return value;
       }
 
       auto state() const
@@ -60,7 +60,7 @@ namespace lsp
 
   template<
     typename Predicate
-    , typename EventT = std::remove_cv_t<
+    , typename Value = std::remove_cv_t<
 	    std::remove_reference_t<
 	      typename function_traits<Predicate>::template argument<0>::type
 	      >
@@ -68,7 +68,7 @@ namespace lsp
     >
     auto make_filter(Predicate&& p)
     {
-      return filter<EventT, Predicate>{std::forward<Predicate>(p)};
+      return filter<Value, Predicate>{std::forward<Predicate>(p)};
     }
 
 } // namespace lsp

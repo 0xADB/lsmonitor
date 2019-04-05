@@ -2,6 +2,8 @@
 #include "stringify.h"
 #include "variant.h"
 #include "file_event_predicate.h"
+#include "container.h"
+#include "broadcast.h"
 
 #include "stlab/concurrency/channel.hpp"
 #include "stlab/concurrency/default_executor.hpp"
@@ -10,18 +12,52 @@
 #include <thread>
 #include <type_traits>
 #include <functional>
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <set>
+#include <iterator>
 
 namespace lsp
 {
-  struct SameFilename
+  struct FilenameEqual
+  {
+    template<typename L, typename R>
+      std::enable_if_t<
+        std::is_same_v<
+	  typename L::value_type
+	  , typename std::iterator_traits<typename L::iterator>::value_type
+	  >
+        && std::is_same_v<
+	  typename R::value_type
+	  , typename std::iterator_traits<typename R::iterator>::value_type
+	  >
+        , bool
+        >
+        operator()(const L& l, const R& r) const
+      {
+        return std::equal(
+            std::begin(l), std::end(l)
+            , std::begin(r), std::end(r)
+            , [](const auto& l, const auto& r) {return (l->filename == r->filename);}
+            );
+      }
+
+    template<typename L, typename R>
+      bool operator()(const L& l, const R& r) const
+      {
+	spdlog::debug("{0} vs {1}", l->filename, r->filename);
+        return (l->filename == r->filename);
+      }
+
+  };
+
+  struct FilenameLess
   {
     template<typename L, typename R>
       bool operator()(const L& l, const R& r) const
       {
-	spdlog::debug("comparing filenames: {0} == {1}", l->filename, r->filename);
-	return (l->filename == r->filename);
+        return (l->filename < r->filename);
       }
   };
 } //lsp
@@ -59,7 +95,7 @@ void SourceManager::only(lsp::Reader&& reader, Predicate&& predicate)
 	    );
 	return event;
       }
-    | lsp::filter<event_t, Predicate>{predicate} // TODO: multievent predicate
+    | lsp::filter<event_t, Predicate>{predicate}
     | lsp::stringify{}
     | [](std::string&& str) {spdlog::info("{0} | {1}", "only", str);}; // last one shouldn't return
 
@@ -173,7 +209,7 @@ void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_re
     | [](lsp_event_t event)
       {
         spdlog::debug("{0} | lsp: started: {1} : pid[{2}] : {3} : {4}"
-            , "all_str"
+            , "count_strings"
             , event->process
             , event->pcred.tgid
             , static_cast<int>(event->code)
@@ -189,7 +225,7 @@ void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_re
     | [](fan_event_t event)
       {
         spdlog::debug("{0} | fan: started: {1} : pid[{2}] : {3} : {4}"
-            , "all_str"
+            , "count_strings"
             , event->process
             , event->pid
             , static_cast<int>(event->code)
@@ -200,25 +236,32 @@ void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_re
     | lsp::filter<fan_event_t, Predicate>{predicate}
     | lsp::stringify{};
 
+  ctl::broadcast broadcast;
+  broadcast.setup();
+
   auto merged = stlab::merge_channel<stlab::unordered_t>(stlab::default_executor
       , [](std::string&& s) {return s;}
       , std::move(lsp_r)
       , std::move(fan_r)
       )
-    | [&stats](std::string str)
+    | [&stats, &broadcast](std::string&& str)
       {
-	spdlog::info("{0} | {1}", "all_str", str);
+	spdlog::info("{0} | {1}", "count_strings", str);
 	stats[str]++;
+	broadcast.await(std::move(str));
       };
+
 
   lsp_receive.set_ready();
   fan_receive.set_ready();
 
+  std::thread br_thread(&ctl::broadcast::listen, &broadcast);
   std::thread lsp_thread(std::move(lsp_reader), std::move(lsp_send));
   std::thread fan_thread(std::move(fan_reader), std::move(fan_send), std::string("/home/"));
 
   fan_thread.join();
   lsp_thread.join();
+  br_thread.join();
 
   printStats(stats, 125);
 
@@ -265,7 +308,7 @@ void SourceManager::intersection(lsp::Reader&& lsp_reader, fan::Reader&& fan_rea
 
   auto combined_channel =
     stlab::zip_with(stlab::default_executor
-      , lsp::adjacent_if<lsp::SameFilename, lsp_event_t, fan_event_t>{lsp::SameFilename{}}
+      , lsp::adjacent_if<lsp::FilenameEqual, lsp_event_t, fan_event_t>{lsp::FilenameEqual{}}
       , std::move(lsp_r)
       , std::move(fan_r)
       )
@@ -337,10 +380,10 @@ void SourceManager::difference(lsp::Reader&& lsp_reader, fan::Reader&& fan_reade
 
   auto combined_channel = stlab::zip_with(stlab::default_executor
       , lsp::adjacent_if<
-	  decltype(std::not_fn(lsp::SameFilename{}))
+	  decltype(std::not_fn(lsp::FilenameEqual{}))
 	  , lsp_event_t
 	  , fan_event_t
-	  >{std::not_fn(lsp::SameFilename{})}
+	  >{std::not_fn(lsp::FilenameEqual{})}
       , std::move(lsp_r)
       , std::move(fan_r)
       )
@@ -361,6 +404,90 @@ void SourceManager::difference(lsp::Reader&& lsp_reader, fan::Reader&& fan_reade
 	}
       };
 
+  lsp_channel.second.set_ready();
+  fan_channel.second.set_ready();
+
+  std::thread lsp_thread(std::move(lsp_reader), std::move(lsp_channel.first));
+  std::thread fan_thread(std::move(fan_reader), std::move(fan_channel.first), std::string("/home/"));
+
+  fan_thread.join();
+  lsp_thread.join();
+
+  printStats(stats);
+
+}
+
+template<typename Predicate>
+void SourceManager::buffered_difference(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, Predicate&& predicate, size_t buffer_size)
+{
+  using lsp_event_t = std::unique_ptr<lsp::FileEvent>;
+  using fan_event_t = std::unique_ptr<fan::FileEvent>;
+
+  auto lsp_channel = stlab::channel<lsp_event_t>(stlab::default_executor);
+  auto fan_channel = stlab::channel<fan_event_t>(stlab::default_executor);
+
+  using lsp_buffer_t = std::multiset<lsp_event_t>;
+  using fan_buffer_t = std::multiset<fan_event_t>;
+
+  std::map<std::string, size_t> stats;
+
+  auto lsp_r =
+    lsp_channel.second
+    | [](auto event)
+      {
+	spdlog::debug("{0} | lsp: started: {1} : pid[{2}] : {3} : {4}"
+	    , "diff"
+	    , event->process
+	    , event->pcred.tgid
+	    , static_cast<int>(event->code)
+	    , event->filename
+	    );
+	return event;
+      }
+    | lsp::filter<lsp_event_t, Predicate>{predicate}
+    | lsp::queue<lsp_buffer_t>(buffer_size);
+
+  auto fan_r =
+    fan_channel.second
+    | [](auto event)
+      {
+	spdlog::debug("{0} | fan: started: {1} : pid[{2}] : {3} : {4}"
+	    , "diff"
+	    , event->process
+	    , event->pid
+	    , static_cast<int>(event->code)
+	    , event->filename
+	    );
+	return event;
+      }
+    | lsp::filter<fan_event_t, Predicate>{predicate}
+    | lsp::queue<fan_buffer_t>(buffer_size);
+
+  auto combined_channel = stlab::zip_with(stlab::default_executor
+      , lsp::adjacent_if<
+	  decltype(std::not_fn(lsp::FilenameEqual{}))
+	  , lsp_event_t
+	  , fan_event_t
+	  >{std::not_fn(lsp::FilenameEqual{})}
+      , std::move(lsp_r)
+      , std::move(fan_r)
+      )
+    | [&stats](auto&& event_variant)
+      {
+        spdlog::debug("{0} | finish: {1} : variant: {2}", "int", __PRETTY_FUNCTION__, event_variant.index());
+	if (event_variant.index() == 0) // lsp_event_t
+	{
+	  auto event = std::move(std::get<0>(event_variant));
+	  spdlog::info("{0} | lsp: {1}[{2}]: {3}", "diff", event->process, event->pcred.tgid, event->filename);
+	  stats[event->filename]++;
+	}
+	else if (event_variant.index() == 1) // fan_event_t
+	{
+	  auto event = std::move(std::get<1>(event_variant));
+	  spdlog::info("{0} | fan: {1}[{2}]: {3}", "diff", event->process, event->pid, event->filename);
+	  stats[event->filename]++;
+	}
+      };
   lsp_channel.second.set_ready();
   fan_channel.second.set_ready();
 

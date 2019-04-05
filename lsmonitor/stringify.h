@@ -9,6 +9,7 @@
 #include <stlab/concurrency/default_executor.hpp>
 
 #include <memory>
+#include <stdexcept>
 
 namespace lsp
 {
@@ -20,9 +21,7 @@ namespace lsp
     template<typename T>
       void await(T event)
       {
-	spdlog::debug("{0}: type error", __PRETTY_FUNCTION__);
-	_str = "type error";
-        _state = stlab::yield_immediate;
+	throw std::runtime_error("Unexpected type");
       }
 
     void await(std::unique_ptr<lsp::FileEvent> event)

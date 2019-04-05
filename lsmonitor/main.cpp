@@ -1,7 +1,7 @@
 #include "spdlog/spdlog.h"
 #include "argh.h"
 
-#include "control_reader.h"
+//#include "control_reader.h"
 #include "file_event_predicate.h"
 #include "source_manager.h"
 
@@ -48,7 +48,8 @@ void signal_handler(int sig, siginfo_t *, void *)
   {
     lsp::Reader::stopping.store(true);
     fan::Reader::stopping.store(true);
-    ctl::Reader::stopping.store(true);
+    ctl::broadcast::stopping.store(true);
+    // ctl::Reader::stopping.store(true);
     release_probe();
   }
 }
@@ -88,6 +89,7 @@ void print_usage(const char * argv0)
     << "\t--any .......................... Use all sources in parallel\n"
     << "\t--count_strings ................ Use all sources and merge them stringified\n"
     << "\t--intersection.................. Use all sources and show only events that came from all sources simultaneosly\n"
+    << "\t--difference ................... Use all sources and show only events that came from the only sources\n"
     << "\n"
     << "Predicate is either:\n"
     << "  ANDed options:\n"
@@ -117,6 +119,7 @@ int main(int argc, char ** argv)
       , "gid"
       , "process"
       , "expr"
+      , "buffer"
       });
   cmdl.parse(argc, argv);
 
@@ -173,6 +176,17 @@ int main(int argc, char ** argv)
     else
       manager.difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
   }
+  else if (cmdl["--buffered_difference"])
+  {
+    spdlog::info("Starting in 'buffered_difference' mode...");
+    size_t buffer_size = 3;
+    cmdl("--buffer", 3) >> buffer_size;
+    if (cmdl("--expr"))
+      manager.buffered_difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()), buffer_size);
+    else
+      manager.buffered_difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl), buffer_size);
+  }
+
   else if (cmdl["--lsprobe"])
   {
     spdlog::info("Starting lsprobe listening...");

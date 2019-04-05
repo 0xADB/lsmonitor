@@ -16,7 +16,6 @@ namespace lsp
 
       std::variant<Ts...> _result{};
       stlab::process_state_scheduled _state = stlab::await_forever;
-      std::exception_ptr _error{};
 
       template<typename T>
 	void await(T&& value)
@@ -34,8 +33,16 @@ namespace lsp
 
       void set_error(std::exception_ptr error)
       {
-	_error = error; // ?
-      }
+	try
+	{
+	  if (error)
+	    std::rethrow_exception(error);
+	}
+	catch (const std::exception& e)
+	{
+	  spdlog::critical("{0} : {1}", __PRETTY_FUNCTION__, e.what());
+	  throw;
+	}      }
 
       auto state() const {return _state;}
     };
@@ -115,4 +122,78 @@ namespace lsp
       auto state() const {return _state;}
     };
 
+  template<typename L, typename R, typename Less>
+    struct set_difference
+    {
+      using value_type = std::variant<typename L::value_type, typename R::value_type>;
+
+      Less _less{};
+      std::vector<value_type> _results{};
+      stlab::process_state_scheduled _state = stlab::await_forever;
+
+      void await(L&& l, R&& r)
+      {
+        _results.reserve(l.size() + r.size());
+	auto lit = std::begin(l);
+	auto lEndIt = std::end(l);
+
+	auto rit = std::begin(r);
+	auto rEndIt = std::end(r);
+
+	while (lit != lEndIt && rit != rEndIt)
+	{
+	  if (_less(*lit, *rit))
+	  {
+	    _results.emplace_back(value_type(std::move(l.extract(lit).value())));
+	    lit = std::begin(l);
+	  }
+	  else if (_less(*rit, *lit))
+	  {
+	    _results.emplace_back(value_type(std::move(r.extract(rit).value())));
+	    rit = std::begin(r);
+	  }
+	  else
+	  {
+	    l.extract(lit);
+	    lit = std::begin(l);
+
+	    r.extract(rit);
+	    rit = std::begin(r);
+	  }
+	}
+
+        if (!_results.empty())
+          _state = stlab::yield_immediate;
+	else
+	  _state = stlab::await_forever;
+      }
+
+      value_type yield()
+      {
+	value_type result;
+	if (!_results.empty())
+	{
+	  result = std::move(_results.back());
+	  _results.pop_back();
+	}
+	_state = (_results.empty() ? stlab::await_forever : stlab::yield_immediate);
+	return result;
+      }
+
+      void set_error(std::exception_ptr error)
+      {
+	try
+	{
+	  if (error)
+	    std::rethrow_exception(error);
+	}
+	catch (const std::exception& e)
+	{
+	  spdlog::critical("{0} : {1}", __PRETTY_FUNCTION__, e.what());
+	  throw;
+	}
+      }
+
+      auto state() const {return _state;}
+    };
 } // lsp

@@ -62,11 +62,11 @@ add_executable(lsmonitor
   lsmonitor/main.cpp
   lsmonitor/lsprobe_reader.cpp
   lsmonitor/fanotify_reader.cpp
-  lsmonitor/control_reader.cpp
   lsmonitor/utility.cpp
   lsmonitor/lsprobe_event.cpp
   lsmonitor/fanotify_event.cpp
   lsmonitor/file_event_predicate.cpp
+  lsmonitor/broadcast.cpp
   )
 
 set_target_properties(lsmonitor PROPERTIES
