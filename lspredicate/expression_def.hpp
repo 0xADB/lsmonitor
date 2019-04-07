@@ -12,9 +12,37 @@
 
 namespace lspredicate
 {
+
+  namespace x3 = boost::spirit::x3;
+
+  struct comparison_operator_parser : x3::symbols<ast::comparison_operator>
+  {
+    comparison_operator_parser()
+    {
+      add
+	("==", ast::comparison_operator::EQ)
+	("!=", ast::comparison_operator::NEQ)
+	;
+    }
+  } comparison_operator;
+
+  struct comparison_identifier_parser : x3::symbols<ast::comparison_identifier>
+  {
+    comparison_identifier_parser()
+    {
+      add
+	("event"  , ast::comparison_identifier::EVENT)
+	("file"   , ast::comparison_identifier::FILE_PATH)
+	("process", ast::comparison_identifier::PROCESS_PATH)
+	("pid"    , ast::comparison_identifier::PROCESS_PID)
+	("uid"    , ast::comparison_identifier::PROCESS_UID)
+	("gid"    , ast::comparison_identifier::PROCESS_GID)
+	;
+    }
+  } comparison_identifier;
+
   namespace parser
   {
-    namespace x3 = boost::spirit::x3;
 
     struct position_cache_tag;
 
@@ -56,11 +84,11 @@ namespace lspredicate
 
     auto const disjunctive_expr_def =
       conjunctive_expr
-      >> *(((x3::string("||")) >> x3::expect[conjunctive_expr]));
+      >> *(((x3::lit("||")) >> x3::expect[conjunctive_expr]));
 
     auto const conjunctive_expr_def =
       unary_expr
-      >> *(((x3::string("&&")) >> x3::expect[unary_expr]));
+      >> *(((x3::lit("&&")) >> x3::expect[unary_expr]));
 
     auto const unary_expr_def =
       primary_expr
@@ -72,11 +100,10 @@ namespace lspredicate
       | ('(' >> disjunctive_expr >> ')');
 
     auto const comparison_expr_def =
-      (+(x3::alpha)) >> x3::expect[comparison_operation];
+      comparison_identifier >> x3::expect[comparison_operation];
 
     auto const comparison_operation_def =
-      (x3::string("==") >> comparison_value)
-      | (x3::string("!=") >> comparison_value);
+      (comparison_operator >> comparison_value);
 
     auto const quoted_string =
       x3::lexeme['"' >> +(x3::char_ - '"') >> '"']

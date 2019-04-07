@@ -27,35 +27,31 @@ namespace fan
 
       bool operator()(lspredicate::ast::comparison const& ast) const
       {
-	// TODO: hash names?
 	bool result = true;
-	bool matched = false;
-	if (ast.identifier == "file")
+	switch(ast.identifier)
 	{
-	  matched = true;
-	  result = (_event->filename == boost::get<std::string>(ast.operation_.operand_));
+	  case lspredicate::ast::comparison_identifier::EVENT:
+	    result = (static_cast<long>(_event->code) == boost::get<long>(ast.operation_.operand_));
+	    break;
+	  case lspredicate::ast::comparison_identifier::FILE_PATH:
+	    result = (_event->filename == boost::get<std::string>(ast.operation_.operand_));
+	    break;
+	  case lspredicate::ast::comparison_identifier::PROCESS_PATH:
+	    result = (_event->process == boost::get<std::string>(ast.operation_.operand_));
+	    break;
+	  case lspredicate::ast::comparison_identifier::PROCESS_PID:
+	    result = (_event->pid == boost::get<long>(ast.operation_.operand_));
+	    break;
+	  case lspredicate::ast::comparison_identifier::PROCESS_UID:
+	    result = (_event->uid == boost::get<long>(ast.operation_.operand_));
+	    break;
+	  case lspredicate::ast::comparison_identifier::PROCESS_GID:
+	    result = (_event->gid == boost::get<long>(ast.operation_.operand_));
+	    break;
+	  default:
+	     throw std::runtime_error(fmt::format("Unknown identifier index: {0}", static_cast<long>(ast.identifier)));
 	}
-	else if (ast.identifier == "process")
-	{
-	  matched = true;
-	  result = (_event->process == boost::get<std::string>(ast.operation_.operand_));
-	}
-	else if (ast.identifier == "pid")
-	{
-	  matched = true;
-	  result = (_event->pid == boost::get<long>(ast.operation_.operand_));
-	}
-	else if (ast.identifier == "uid")
-	{
-	  matched = true;
-	  result = (_event->uid == boost::get<long>(ast.operation_.operand_));
-	}
-	else if (ast.identifier == "gid")
-	{
-	  matched = true;
-	  result = (_event->uid == boost::get<long>(ast.operation_.operand_));
-	}
-	if (matched && ast.operation_.operator_.front() == '!')
+	if (ast.operation_.operator_ == lspredicate::ast::comparison_operator::NEQ)
 	  result = !result;
 	return result;
       }

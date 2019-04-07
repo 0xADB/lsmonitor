@@ -7,6 +7,8 @@
 #include <iomanip>
 #include <string>
 
+#include "fmt/format.h"
+
 namespace lspredicate
 {
   namespace ast
@@ -36,27 +38,36 @@ namespace lspredicate
 	  out << ast;
 	}
 
-	void operator()(ast::operation const& ast) const
+	void operator()(ast::disjunctive_operation const& ast) const
 	{
-	  if (ast.operator_ == "&&")
-	    out << " && ";
-	  else if (ast.operator_ == "||")
-	    out << " || ";
-	  else
-	  {
-	    BOOST_ASSERT(0);
-	    return;
-	  }
+	  out << " || ";
+	  boost::apply_visitor(*this, ast.operand_);
+	}
+
+	void operator()(ast::conjunctive_operation const& ast) const
+	{
+	  out << " && ";
 	  boost::apply_visitor(*this, ast.operand_);
 	}
 
 	void operator()(ast::comparison const& ast) const
 	{
 	  out << '(';
-	  out << ast.identifier.c_str();
-	  if (ast.operation_.operator_ == "!=")
+	  switch(ast.identifier)
+	  {
+	    case lspredicate::ast::comparison_identifier::EVENT       : out << "event"  ; break;
+	    case lspredicate::ast::comparison_identifier::FILE_PATH   : out << "file"   ; break;
+	    case lspredicate::ast::comparison_identifier::PROCESS_PATH: out << "process"; break;
+	    case lspredicate::ast::comparison_identifier::PROCESS_PID : out << "pid"    ; break;
+	    case lspredicate::ast::comparison_identifier::PROCESS_UID : out << "uid"    ; break;
+	    case lspredicate::ast::comparison_identifier::PROCESS_GID : out << "gid"    ; break;
+	    default:
+	       throw std::runtime_error(fmt::format("Unknown identifier index: {0}", static_cast<int>(ast.identifier)));
+	  }
+
+	  if (ast.operation_.operator_ == ast::comparison_operator::NEQ)
 	    out << " != ";
-	  else if (ast.operation_.operator_ == "==")
+	  else if (ast.operation_.operator_ == ast::comparison_operator::EQ)
 	    out << " == ";
 	  else
 	  {

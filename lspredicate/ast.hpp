@@ -13,6 +13,17 @@ namespace lspredicate
   {
     namespace x3 = boost::spirit::x3;
 
+    enum class comparison_operator {EQ, NEQ};
+    enum class comparison_identifier
+    {
+	EVENT
+      , FILE_PATH
+      , PROCESS_PATH
+      , PROCESS_PID
+      , PROCESS_UID
+      , PROCESS_GID
+    };
+
     struct negated;
     struct disjunctive_expression;
     struct conjunctive_expression;
@@ -37,22 +48,26 @@ namespace lspredicate
       operand operand_;
     };
 
-    struct operation : x3::position_tagged
+    struct disjunctive_operation : x3::position_tagged
     {
-      std::string operator_;
+      operand operand_;
+    };
+
+    struct conjunctive_operation : x3::position_tagged
+    {
       operand operand_;
     };
 
     struct disjunctive_expression : x3::position_tagged
     {
       operand head;
-      std::list<operation> tail; // TODO: vector
+      std::list<disjunctive_operation> tail;
     };
 
     struct conjunctive_expression : x3::position_tagged
     {
       operand head;
-      std::list<operation> tail; // TODO: vector
+      std::list<conjunctive_operation> tail;
     };
 
     struct comparison_value
@@ -68,13 +83,13 @@ namespace lspredicate
 
     struct comparison_operation : x3::position_tagged
     {
-      std::string operator_;
+      comparison_operator operator_;
       comparison_value operand_;
     };
 
     struct comparison : x3::position_tagged
     {
-      std::string identifier;
+      comparison_identifier identifier;
       comparison_operation operation_;
     };
 
