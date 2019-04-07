@@ -42,30 +42,25 @@ link_directories(
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/stlab)
 
-# add_library(Boost::boost INTERFACE IMPORTED)
-# set_property(TARGET Boost::boost APPEND PROPERTY
-#   INTERFACE_LINK_LIBRARIES CONAN_PKG::boost
-#   )
-
 add_library(lspredicate STATIC
   lspredicate/printer.cpp
+  lspredicate/cmdl_expression.cpp
   )
 
-set_target_properties(lspredicate PROPERTIES
+add_library(file_event STATIC
+  file_event/fanotify_event.cpp
+  file_event/fanotify_reader.cpp
+  file_event/lsprobe_event.cpp
+  file_event/lsprobe_reader.cpp
+  )
+
+set_target_properties(lspredicate file_event PROPERTIES
   COMPILE_OPTIONS "-std=c++17;-Wpedantic;-Wall;-Wextra"
   )
 
-#target_link_libraries(lspredicate Boost::system)
-
-
 add_executable(lsmonitor
   lsmonitor/main.cpp
-  lsmonitor/lsprobe_reader.cpp
-  lsmonitor/fanotify_reader.cpp
   lsmonitor/utility.cpp
-  lsmonitor/lsprobe_event.cpp
-  lsmonitor/fanotify_event.cpp
-  lsmonitor/file_event_predicate.cpp
   lsmonitor/broadcast.cpp
   )
 
@@ -74,16 +69,12 @@ set_target_properties(lsmonitor PROPERTIES
   LINK_FLAGS "-static-libstdc++"
   )
 
-target_link_libraries(lsmonitor lspredicate pthread stdc++fs ${CONAN_LIBS_BOOST})
+target_link_libraries(lsmonitor lspredicate file_event pthread stdc++fs ${CONAN_LIBS_BOOST})
 
 
 install(TARGETS lsmonitor
   RUNTIME DESTINATION bin
   )
-
-#install(TARGETS Boost::boost
-#  LIBRARY DESTINATION usr/local/lib
-#  )
 
 set(CPACK_GENERATOR DEB)
 

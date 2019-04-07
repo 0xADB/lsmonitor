@@ -1,7 +1,6 @@
 #include "filter.h"
-#include "stringify.h"
 #include "variant.h"
-#include "file_event_predicate.h"
+#include "lspredicate/cmdl_expression.h"
 #include "container.h"
 #include "broadcast.h"
 
@@ -36,10 +35,10 @@ namespace lsp
         >
         operator()(const L& l, const R& r) const
       {
-        return std::equal(
-            std::begin(l), std::end(l)
-            , std::begin(r), std::end(r)
-            , [](const auto& l, const auto& r) {return (l->filename == r->filename);}
+	return std::equal(
+	    std::begin(l), std::end(l)
+	    , std::begin(r), std::end(r)
+	    , [](const auto& l, const auto& r) {return (l->filename == r->filename);}
             );
       }
 
@@ -47,7 +46,7 @@ namespace lsp
       bool operator()(const L& l, const R& r) const
       {
 	spdlog::debug("{0} vs {1}", l->filename, r->filename);
-        return (l->filename == r->filename);
+	return (l->filename == r->filename);
       }
 
   };
@@ -57,7 +56,7 @@ namespace lsp
     template<typename L, typename R>
       bool operator()(const L& l, const R& r) const
       {
-        return (l->filename < r->filename);
+	return (l->filename < r->filename);
       }
   };
 } //lsp
@@ -82,22 +81,11 @@ void SourceManager::only(lsp::Reader&& reader, Predicate&& predicate)
   auto r = receiver
     | [](event_t event)
       {
-	spdlog::debug("{0} | lsp: {1} : pid[{2}] : cred [{3}({4}):{5}({6})] : op[{7}] : {8}"
-	    , "only"
-	    , event->process
-	    , event->pcred.tgid
-	    , event->user
-	    , event->pcred.uid
-	    , event->group
-	    , event->pcred.gid
-	    , static_cast<int>(event->code)
-	    , event->filename
-	    );
+	spdlog::debug("only | {0}", __func__, event->stringify());
 	return event;
       }
     | lsp::filter<event_t, Predicate>{predicate}
-    | lsp::stringify{}
-    | [](std::string&& str) {spdlog::info("{0} | {1}", "only", str);}; // last one shouldn't return
+    | [](auto&& event) {spdlog::info("only | {0}", event->stringify());};
 
   receiver.set_ready();
 
@@ -115,20 +103,11 @@ void SourceManager::only(fan::Reader&& reader, Predicate&& predicate)
   auto r = receiver
     | [](event_t event)
       {
-	spdlog::debug("{0} | fan: {1} : pid[{2}] : cred [{3}:{4}] : op[{5}] : {6}"
-	    , "only"
-	    , event->process
-	    , event->pid
-	    , event->uid
-	    , event->gid
-	    , static_cast<int>(event->code)
-	    , event->filename
-	    );
+	spdlog::debug("only | {0}", event->stringify());
 	return event;
       }
     | lsp::filter<event_t, Predicate>{predicate}
-    | lsp::stringify{}
-    | [](std::string&& str) {spdlog::info("{0} | {1}", "only", str);}; // last one shouldn't return
+    | [](auto&& event) {spdlog::info("only | {0}", event->stringify());};
 
   receiver.set_ready();
 
@@ -148,35 +127,21 @@ void SourceManager::any(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, Pred
     lsp_channel.second
     | [](lsp_event_t event)
       {
-	spdlog::debug("{0} | lsp: started: {1} : pid[{2}] : {3} : {4}"
-	    , "any"
-	    , event->process
-	    , event->pcred.tgid
-	    , static_cast<int>(event->code)
-	    , event->filename
-	    );
+	spdlog::debug("any | {0}", event->stringify());
 	return event;
       }
     | lsp::filter<lsp_event_t, Predicate>{predicate}
-    | lsp::stringify{}
-    | [](std::string&& str) {spdlog::info("{0} | lsp: {1}", "any", str);};
+    | [](auto&& event) {spdlog::info("any | {0}", event->stringify());};
 
   auto fan_r =
     fan_channel.second
     | [](fan_event_t event)
       {
-	spdlog::debug("{0} | fan: started: {1} : pid[{2}] : {3} : {4}"
-	    , "any"
-	    , event->process
-	    , event->pid
-	    , static_cast<int>(event->code)
-	    , event->filename
-	    );
+	spdlog::debug("any | {0}", event->stringify());
 	return event;
       }
     | lsp::filter<fan_event_t, Predicate>{predicate}
-    | lsp::stringify{}
-    | [](std::string&& str) {spdlog::info("{0} | fan: {1}", "any", str);};
+    | [](auto&& event) {spdlog::info("any | {0}", event->stringify());};
 
   lsp_channel.second.set_ready();
   fan_channel.second.set_ready();
@@ -189,7 +154,7 @@ void SourceManager::any(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, Pred
 }
 
 template<typename Predicate>
-void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, Predicate&& predicate)
+void SourceManager::count_stringified(lsp::Reader&& lsp_reader, fan::Reader&& fan_reader, Predicate&& predicate)
 {
   using lsp_event_t = std::unique_ptr<lsp::FileEvent>;
   stlab::sender<lsp_event_t> lsp_send;
@@ -208,49 +173,35 @@ void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_re
     lsp_receive
     | [](lsp_event_t event)
       {
-        spdlog::debug("{0} | lsp: started: {1} : pid[{2}] : {3} : {4}"
-            , "count_strings"
-            , event->process
-            , event->pcred.tgid
-            , static_cast<int>(event->code)
-            , event->filename
-            );
-        return event;
+	spdlog::debug("count_stringified | {0}", event->stringify());
+	return event;
       }
     | lsp::filter<lsp_event_t, Predicate>{predicate}
-    | lsp::stringify{};
+    | [](auto&& event){return event->stringify();};
 
   auto fan_r =
     fan_receive
     | [](fan_event_t event)
       {
-        spdlog::debug("{0} | fan: started: {1} : pid[{2}] : {3} : {4}"
-            , "count_strings"
-            , event->process
-            , event->pid
-            , static_cast<int>(event->code)
-            , event->filename
-            );
-        return event;
+	spdlog::debug("count_stringified | {0}", event->stringify());
+	return event;
       }
     | lsp::filter<fan_event_t, Predicate>{predicate}
-    | lsp::stringify{};
+    | [](auto&& event){return event->stringify();};
 
   ctl::broadcast broadcast;
   broadcast.setup();
 
   auto merged = stlab::merge_channel<stlab::unordered_t>(stlab::default_executor
-      , [](std::string&& s) {return s;}
+      , [&stats, &broadcast](std::string&& str)
+	{
+	  spdlog::info("count_stringified | {0}", str);
+	  stats[str]++;
+	  broadcast.send(std::move(str));
+	}
       , std::move(lsp_r)
       , std::move(fan_r)
-      )
-    | [&stats, &broadcast](std::string&& str)
-      {
-	spdlog::info("{0} | {1}", "count_strings", str);
-	stats[str]++;
-	broadcast.await(std::move(str));
-      };
-
+      );
 
   lsp_receive.set_ready();
   fan_receive.set_ready();
@@ -264,7 +215,6 @@ void SourceManager::count_strings(lsp::Reader&& lsp_reader, fan::Reader&& fan_re
   br_thread.join();
 
   printStats(stats, 125);
-
 }
 
 template<typename Predicate>
@@ -278,16 +228,10 @@ void SourceManager::intersection(lsp::Reader&& lsp_reader, fan::Reader&& fan_rea
 
   auto lsp_r =
     lsp_channel.second
-    | [](auto event)
+    | [](auto&& event)
       {
-        spdlog::debug("{0} | lsp: started: {1} : pid[{2}] : {3} : {4}"
-            , "int"
-            , event->process
-            , event->pcred.tgid
-            , static_cast<int>(event->code)
-            , event->filename
-            );
-        return event;
+	spdlog::debug("intersection | {0}", event->stringify());
+	return event;
       }
     | lsp::filter<lsp_event_t, Predicate>{predicate};
 
@@ -295,14 +239,8 @@ void SourceManager::intersection(lsp::Reader&& lsp_reader, fan::Reader&& fan_rea
     fan_channel.second
     | [](auto event)
       {
-        spdlog::debug("{0} | fan: started: {1} : pid[{2}] : {3} : {4}"
-            , "int"
-            , event->process
-            , event->pid
-            , static_cast<int>(event->code)
-            , event->filename
-            );
-        return event;
+	spdlog::debug("intersection | {0}", event->stringify());
+	return event;
       }
     | lsp::filter<fan_event_t, Predicate>{predicate};
 
@@ -314,17 +252,20 @@ void SourceManager::intersection(lsp::Reader&& lsp_reader, fan::Reader&& fan_rea
       )
     | [](auto&& event_variant)
       {
-        spdlog::debug("{0} | finish: {1} : variant: {2}", "int", __PRETTY_FUNCTION__, event_variant.index());
-        if (event_variant.index() == 0) // lsp_event_t
-        {
-          auto event = std::move(std::get<0>(event_variant));
-          spdlog::info("{0} | lsp: {1}[{2}]: {3}", "int", event->process, event->pcred.tgid, event->filename);
-        }
-        else if (event_variant.index() == 1) // fan_event_t
-        {
-          auto event = std::move(std::get<1>(event_variant));
-          spdlog::info("{0} | fan: {1}[{2}]: {3}", "int", event->process, event->pid, event->filename);
-        }
+	if (event_variant.index() == 0) // lsp_event_t
+	{
+	  auto event = std::move(std::get<0>(event_variant));
+	  spdlog::info("intersection | {0}", event->stringify());
+	}
+	else if (event_variant.index() == 1) // fan_event_t
+	{
+	  auto event = std::move(std::get<1>(event_variant));
+	  spdlog::info("intersection | {0}", event->stringify());
+	}
+	else
+	{
+	  spdlog::warn("intersection | unknown variant index: {0}", event_variant.index());
+	}
       };
 
   lsp_channel.second.set_ready();
@@ -352,13 +293,7 @@ void SourceManager::difference(lsp::Reader&& lsp_reader, fan::Reader&& fan_reade
     lsp_channel.second
     | [](auto event)
       {
-	spdlog::debug("{0} | lsp: started: {1} : pid[{2}] : {3} : {4}"
-	    , "diff"
-	    , event->process
-	    , event->pcred.tgid
-	    , static_cast<int>(event->code)
-	    , event->filename
-	    );
+	spdlog::info("difference | {0}", event->stringify());
 	return event;
       }
     | lsp::filter<lsp_event_t, Predicate>{predicate};
@@ -367,13 +302,7 @@ void SourceManager::difference(lsp::Reader&& lsp_reader, fan::Reader&& fan_reade
     fan_channel.second
     | [](auto event)
       {
-	spdlog::debug("{0} | fan: started: {1} : pid[{2}] : {3} : {4}"
-	    , "diff"
-	    , event->process
-	    , event->pid
-	    , static_cast<int>(event->code)
-	    , event->filename
-	    );
+	spdlog::info("difference | {0}", event->stringify());
 	return event;
       }
     | lsp::filter<fan_event_t, Predicate>{predicate};
@@ -389,18 +318,21 @@ void SourceManager::difference(lsp::Reader&& lsp_reader, fan::Reader&& fan_reade
       )
     | [&stats](auto&& event_variant)
       {
-        spdlog::debug("{0} | finish: {1} : variant: {2}", "int", __PRETTY_FUNCTION__, event_variant.index());
 	if (event_variant.index() == 0) // lsp_event_t
 	{
 	  auto event = std::move(std::get<0>(event_variant));
-	  spdlog::info("{0} | lsp: {1}[{2}]: {3}", "diff", event->process, event->pcred.tgid, event->filename);
+	  spdlog::info("difference | {0}", event->stringify());
 	  stats[event->filename]++;
 	}
 	else if (event_variant.index() == 1) // fan_event_t
 	{
 	  auto event = std::move(std::get<1>(event_variant));
-	  spdlog::info("{0} | fan: {1}[{2}]: {3}", "diff", event->process, event->pid, event->filename);
+	  spdlog::info("difference | {0}", event->stringify());
 	  stats[event->filename]++;
+	}
+	else
+	{
+	  spdlog::warn("difference | unknown variant index: {0}", event_variant.index());
 	}
       };
 
@@ -435,13 +367,7 @@ void SourceManager::buffered_difference(lsp::Reader&& lsp_reader, fan::Reader&& 
     lsp_channel.second
     | [](auto event)
       {
-	spdlog::debug("{0} | lsp: started: {1} : pid[{2}] : {3} : {4}"
-	    , "diff"
-	    , event->process
-	    , event->pcred.tgid
-	    , static_cast<int>(event->code)
-	    , event->filename
-	    );
+	spdlog::info("buffered_difference | {0}", event->stringify());
 	return event;
       }
     | lsp::filter<lsp_event_t, Predicate>{predicate}
@@ -451,13 +377,7 @@ void SourceManager::buffered_difference(lsp::Reader&& lsp_reader, fan::Reader&& 
     fan_channel.second
     | [](auto event)
       {
-	spdlog::debug("{0} | fan: started: {1} : pid[{2}] : {3} : {4}"
-	    , "diff"
-	    , event->process
-	    , event->pid
-	    , static_cast<int>(event->code)
-	    , event->filename
-	    );
+	spdlog::info("buffered_difference | {0}", event->stringify());
 	return event;
       }
     | lsp::filter<fan_event_t, Predicate>{predicate}
@@ -474,18 +394,21 @@ void SourceManager::buffered_difference(lsp::Reader&& lsp_reader, fan::Reader&& 
       )
     | [&stats](auto&& event_variant)
       {
-        spdlog::debug("{0} | finish: {1} : variant: {2}", "int", __PRETTY_FUNCTION__, event_variant.index());
 	if (event_variant.index() == 0) // lsp_event_t
 	{
 	  auto event = std::move(std::get<0>(event_variant));
-	  spdlog::info("{0} | lsp: {1}[{2}]: {3}", "diff", event->process, event->pcred.tgid, event->filename);
+	  spdlog::info("buffered_difference | {0}", event->stringify());
 	  stats[event->filename]++;
 	}
 	else if (event_variant.index() == 1) // fan_event_t
 	{
 	  auto event = std::move(std::get<1>(event_variant));
-	  spdlog::info("{0} | fan: {1}[{2}]: {3}", "diff", event->process, event->pid, event->filename);
+	  spdlog::info("buffered_difference | {0}", event->stringify());
 	  stats[event->filename]++;
+	}
+	else
+	{
+	  spdlog::warn("buffered_difference | unknown variant index: {0}", event_variant.index());
 	}
       };
   lsp_channel.second.set_ready();

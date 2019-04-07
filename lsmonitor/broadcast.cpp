@@ -78,7 +78,12 @@ void ctl::broadcast::listen()
     {
       _dataFds.push_back(fd);
     }
-    else if (errno != EINTR)
+    else if (errno == EINTR)
+    {
+      spdlog::debug("{0}: exiting", __PRETTY_FUNCTION__);
+      break;
+    }
+    else
     {
       std::error_code err(errno, std::system_category());
       throw std::runtime_error(
@@ -88,7 +93,7 @@ void ctl::broadcast::listen()
   }
 }
 
-void ctl::broadcast::await(std::string&& value)
+void ctl::broadcast::send(std::string&& value)
 {
   _value = std::move(value);
   spdlog::debug("{0}: sending {1}", __PRETTY_FUNCTION__, _value);

@@ -1,9 +1,11 @@
-#include "fanotify_event.h"
+#include "lsprobe_event.h"
 
 #include <boost/variant/apply_visitor.hpp>
+#include <boost/variant/get.hpp>
 #include <boost/assert.hpp>
+#include "fmt/format.h"
 
-namespace fan
+namespace lsp
 {
   namespace predicate
   {
@@ -20,32 +22,40 @@ namespace fan
 
       bool operator()(bool ast) const
       {
-	return ast;
+        return ast;
       }
-
-      // const std::string& operator()(std::string const& ast) const
-      // {
-      //   return ast;
-      // }
-
-      // long operator()(long ast) const
-      // {
-      //   return ast;
-      // }
 
       bool operator()(lspredicate::ast::comparison const& ast) const
       {
 	// TODO: hash names?
-	bool result = false;
+	bool result = true;
+	bool matched = false;
 	if (ast.identifier == "file")
 	{
+	  matched = true;
 	  result = (_event->filename == boost::get<std::string>(ast.operation_.operand_));
 	}
 	else if (ast.identifier == "process")
 	{
+	  matched = true;
 	  result = (_event->process == boost::get<std::string>(ast.operation_.operand_));
 	}
-	if (ast.operation_.operator_.front() == '!')
+	else if (ast.identifier == "pid")
+	{
+	  matched = true;
+	  result = (_event->pcred.tgid == boost::get<long>(ast.operation_.operand_));
+	}
+	else if (ast.identifier == "uid")
+	{
+	  matched = true;
+	  result = (_event->pcred.uid == boost::get<long>(ast.operation_.operand_));
+	}
+	else if (ast.identifier == "gid")
+	{
+	  matched = true;
+	  result = (_event->pcred.gid == boost::get<long>(ast.operation_.operand_));
+	}
+	if (matched && ast.operation_.operator_.front() == '!')
 	  result = !result;
 	return result;
       }
@@ -92,9 +102,23 @@ namespace fan
 
     };
 
-    bool evaluate(const std::unique_ptr<fan::FileEvent>& event, lspredicate::ast::expression const& ast)
+    template<>
+    bool evaluate<std::unique_ptr<FileEvent>>(const std::unique_ptr<FileEvent>& event, lspredicate::ast::expression const& ast)
     {
       return CmdlExpressionEvaluator{event}(ast);
     }
   } // predicate
-} // fan
+
+  std::string FileEvent::stringify() const
+  {
+    return fmt::format("lsp: {0} : pid[{1}] : uid[{2}] : gid[{3}] : op[{4}] : {5}"
+	    , process
+	    , pcred.tgid
+	    , pcred.uid
+	    , pcred.gid
+	    , static_cast<int>(code)
+	    , filename
+	    );
+  }
+
+} // lsp

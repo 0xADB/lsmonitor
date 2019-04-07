@@ -11,6 +11,7 @@
 
 #include <sys/types.h>
 #include "lspredicate/ast.hpp"
+#include "lspredicate/cmdl_expression.h"
 
 namespace lsp
 {
@@ -25,11 +26,7 @@ namespace lsp
       , process(
 	  lsp_event_field_get_const(event, 1)->value
 	  )
-      , user(linux::getPwuser(static_cast<uid_t>(event->pcred.uid)))
-      , group(linux::getPwgroup(static_cast<gid_t>(event->pcred.gid)))
-    {
-      spdlog::debug("{0}: {1}", __PRETTY_FUNCTION__, filename);
-    }
+    {}
 
     FileEvent() = default;
     FileEvent(FileEvent&&) = default;
@@ -38,16 +35,17 @@ namespace lsp
     FileEvent& operator=(const FileEvent&) = default;
     ~FileEvent() = default;
 
+    std::string stringify() const;
+
     lsp_event_code_t code{};
     lsp_cred_t pcred{};
     std::string filename{};
     std::string process{};
-    std::string user{};
-    std::string group{};
   };
 
   namespace predicate
   {
-    bool evaluate(const std::unique_ptr<FileEvent>& event, lspredicate::ast::expression const& ast);
+    template<>
+    bool evaluate<std::unique_ptr<FileEvent>>(const std::unique_ptr<FileEvent>& event, lspredicate::ast::expression const& ast);
   }
 }

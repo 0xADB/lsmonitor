@@ -22,7 +22,7 @@ namespace ctl
     std::vector<int> _dataFds{};
     std::string _value{};
 
-    void await(std::string&& value);
+    void send(std::string&& value);
 
     ~broadcast();
 

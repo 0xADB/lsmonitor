@@ -2,7 +2,7 @@
 #include "argh.h"
 
 //#include "control_reader.h"
-#include "file_event_predicate.h"
+#include "lspredicate/cmdl_expression.h"
 #include "source_manager.h"
 
 #include <signal.h>
@@ -74,36 +74,32 @@ void setup_signal_handler()
 void print_usage(const char * argv0)
 {
   std::cerr << "Usage: "
-    << argv0 << " [OPTIONS] [SOURCES] [MODES] [PREDICATE]\n"
+    << argv0 << " [OPTIONS] [MODES] [PREDICATE]\n"
     << "\n"
     << "Options:\n"
     << "\t-d, --debug .................... Enable debug messages\n"
     << "\t-h, --help ..................... This message\n"
-    << "\n"
-    << "Sources:\n"
-    << "\t--fanotify ..................... Use fanotify(7) facility as a source (default)\n"
-    << "\t--lsprobe ...................... Use /sys/kernel/security/lsprobe/events as a source\n"
+    << "\t--fanotify ..................... Use fanotify(7) facility as a source (for testing purposes)\n"
+    << "\t--lsprobe ...................... Use /sys/kernel/security/lsprobe/events as a source (default)\n"
     << "\n"
     << "Modes:\n"
     << "\t--only ......................... Use the only source (default)\n"
     << "\t--any .......................... Use all sources in parallel\n"
-    << "\t--count_strings ................ Use all sources and merge them stringified\n"
-    << "\t--intersection.................. Use all sources and show only events that came from all sources simultaneosly\n"
-    << "\t--difference ................... Use all sources and show only events that came from the only sources\n"
+    << "\t--count_stringified ............ Use all sources and merge them stringified\n"
+//     << "\t--intersection.................. Use all sources and show only events that came from all sources simultaneosly\n"
+//    << "\t--difference ................... Use all sources and show only events that came from the only sources\n"
     << "\n"
-    << "Predicate is either:\n"
-    << "  ANDed options:\n"
-    << "\t--file_contains=SUBSTRING ...... Only requests to a file containing SUBSTRING\n"
-    << "\t--file=PATH .................... Only requests to a file with the absolute PATH\n"
-    << "\t--pid=ID ....................... Only requests from a process with the specified ID\n"
-    << "\t--uid=ID ....................... Only requests from a process ran from the user with ID\n"
-    << "\t--gid=ID ....................... Only requests from a process ran from the group with ID\n"
-    << "\t--process=PATH ................. Only requests from processes with the specified PATH (or NAME for fanotify)\n"
-//     << "\t--user=NAME .................... Only requests from processes ran from the user with the user NAME\n"
-//     << "\t--group=NAME ................... Only requests from processes ran from the group with with the group NAME\n"
-    << "  or:\n"
-    << "\t--expr='EXPRESSION' ... Expression in a form:\n"
-    << "\t  (file=\"PATH\")||((pid=ID)&&(process=\"PATH\"))\n"
+    << "Predicate:\n"
+    << "\t--expr='EXPRESSION' ............ Expression in a form:\n"
+    << "\n"
+    << "\t  (file==\"PATH\")||((pid!=ID)&&(process==\"PATH\"))\n"
+    << "\n"
+    << "\t  with available identifiers:\n"
+    << "\t    file ....................... Full path of the file\n"
+    << "\t    process .................... Full path of the process\n"
+    << "\t    pid ........................ Process id\n"
+    << "\t    uid ........................ User id\n"
+    << "\t    gid ........................ Group id\n"
     << std::endl;
 }
 
@@ -141,69 +137,43 @@ int main(int argc, char ** argv)
 
   SourceManager manager;
 
-  if (cmdl("--expr"))
-    spdlog::info("Reading predicate: {0}...", cmdl("expr").str());
-
   if (cmdl["--any"])
   {
     spdlog::info("Starting in 'any' mode...");
-    if (cmdl("--expr"))
-      manager.any(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
-    else
-      manager.any(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
+    manager.any(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
   }
-  else if (cmdl["--count_strings"])
+  else if (cmdl["--count_stringified"])
   {
-    spdlog::info("Starting in 'count_strings' mode...");
-    if (cmdl("--expr"))
-      manager.count_strings(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
-    else
-      manager.count_strings(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
+    spdlog::info("Starting in 'count_stringified' mode...");
+    manager.count_stringified(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
   }
-  else if (cmdl["--intersection"])
+//   else if (cmdl["--intersection"])
+//   {
+//     spdlog::info("Starting in 'intersection' mode...");
+//     manager.intersection(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
+//   }
+//   else if (cmdl["--difference"])
+//   {
+//     spdlog::info("Starting in 'difference' mode...");
+//     manager.difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
+//   }
+//   else if (cmdl["--buffered_difference"])
+//   {
+//     spdlog::info("Starting in 'buffered_difference' mode...");
+//     size_t buffer_size = 3;
+//     cmdl("--buffer", 3) >> buffer_size;
+//     manager.buffered_difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()), buffer_size);
+//   }
+  else if (cmdl["--fanotify"])
   {
-    spdlog::info("Starting in 'intersection' mode...");
-    if (cmdl("--expr"))
-      manager.intersection(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
-    else
-      manager.intersection(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
-  }
-  else if (cmdl["--difference"])
-  {
-    spdlog::info("Starting in 'difference' mode...");
-    if (cmdl("--expr"))
-      manager.difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
-    else
-      manager.difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
-  }
-  else if (cmdl["--buffered_difference"])
-  {
-    spdlog::info("Starting in 'buffered_difference' mode...");
-    size_t buffer_size = 3;
-    cmdl("--buffer", 3) >> buffer_size;
-    if (cmdl("--expr"))
-      manager.buffered_difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()), buffer_size);
-    else
-      manager.buffered_difference(lsp::Reader{}, fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl), buffer_size);
-  }
-
-  else if (cmdl["--lsprobe"])
-  {
-    spdlog::info("Starting lsprobe listening...");
-    if (cmdl("--expr"))
-      manager.only(lsp::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
-    else
-      manager.only(lsp::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
+    spdlog::info("Starting fanotify listening...");
+    manager.only(fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
   }
   else
   {
-    spdlog::info("Starting fanotify listening...");
-    if (cmdl("--expr"))
-      manager.only(fan::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
-    else
-      manager.only(fan::Reader{}, lsp::predicate::CmdlSimpleConjunctive(cmdl));
+    spdlog::info("Starting lsprobe listening...");
+    manager.only(lsp::Reader{}, lsp::predicate::CmdlExpression(cmdl("--expr").str()));
   }
 
-  spdlog::info("That's all, folks!");
   return 0;
 }

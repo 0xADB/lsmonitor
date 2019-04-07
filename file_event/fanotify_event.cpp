@@ -1,10 +1,11 @@
-#include "lsprobe_event.h"
+#include "fanotify_event.h"
 
 #include <boost/variant/apply_visitor.hpp>
-#include <boost/variant/get.hpp>
 #include <boost/assert.hpp>
 
-namespace lsp
+#include "fmt/format.h"
+
+namespace fan
 {
   namespace predicate
   {
@@ -21,32 +22,40 @@ namespace lsp
 
       bool operator()(bool ast) const
       {
-        return ast;
+	return ast;
       }
-
-      // const std::string& operator()(std::string const& ast) const
-      // {
-      //   return ast;
-      // }
-
-      // long operator()(long ast) const
-      // {
-      //   return ast;
-      // }
 
       bool operator()(lspredicate::ast::comparison const& ast) const
       {
 	// TODO: hash names?
-	bool result = false;
+	bool result = true;
+	bool matched = false;
 	if (ast.identifier == "file")
 	{
+	  matched = true;
 	  result = (_event->filename == boost::get<std::string>(ast.operation_.operand_));
 	}
 	else if (ast.identifier == "process")
 	{
+	  matched = true;
 	  result = (_event->process == boost::get<std::string>(ast.operation_.operand_));
 	}
-	if (ast.operation_.operator_.front() == '!')
+	else if (ast.identifier == "pid")
+	{
+	  matched = true;
+	  result = (_event->pid == boost::get<long>(ast.operation_.operand_));
+	}
+	else if (ast.identifier == "uid")
+	{
+	  matched = true;
+	  result = (_event->uid == boost::get<long>(ast.operation_.operand_));
+	}
+	else if (ast.identifier == "gid")
+	{
+	  matched = true;
+	  result = (_event->uid == boost::get<long>(ast.operation_.operand_));
+	}
+	if (matched && ast.operation_.operator_.front() == '!')
 	  result = !result;
 	return result;
       }
@@ -90,12 +99,33 @@ namespace lsp
 	}
 	return result;
       }
-
     };
 
-    bool evaluate(const std::unique_ptr<lsp::FileEvent>& event, lspredicate::ast::expression const& ast)
-    {
-      return CmdlExpressionEvaluator{event}(ast);
-    }
   } // predicate
-} // lsp
+
+  std::string FileEvent::stringify() const
+  {
+    return fmt::format("lsp: {0} : pid[{1}] : uid[{2}] : gid[{3}] : op[{4}] : {5}"
+	    , process
+	    , pid
+	    , uid
+	    , gid
+	    , static_cast<int>(code)
+	    , filename
+	    );
+  }
+
+
+} // fan
+
+namespace lsp
+{
+  namespace predicate
+  {
+    template<>
+    bool evaluate<std::unique_ptr<fan::FileEvent>>(const std::unique_ptr<fan::FileEvent>& event, lspredicate::ast::expression const& ast)
+    {
+      return fan::predicate::CmdlExpressionEvaluator{event}(ast);
+    }
+  }
+}
